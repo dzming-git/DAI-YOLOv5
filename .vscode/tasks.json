@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks":[
+        {
+            "label": "docker-run",
+            "type": "shell",
+            "command":[
+                "docker", "run", 
+                "-it",
+                "-v", "/home/dzming/workspace/DAI/Infrastructure-Layer/weights:/workspace/weights",
+                "-v", "/home/dzming/workspace/DAI/pkgs:/workspace/pkgs",
+                "--net", "host",
+                "--gpus", "all",
+                "yolov5:latest", "/bin/bash"
+            ],
+            "group":{
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
