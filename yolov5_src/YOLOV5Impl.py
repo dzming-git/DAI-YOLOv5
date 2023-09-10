@@ -4,6 +4,7 @@ from yolov5_src.utils.general import non_max_suppression, scale_boxes, check_img
 from yolov5_src.utils.plots import Annotator, colors
 from yolov5_src.utils.augmentations import letterbox
 from yolov5_src.models.common import DetectMultiBackend
+from yolov5_src.utils.torch_utils import select_device
 from typing import Dict
 import queue
 import copy
@@ -16,7 +17,7 @@ class YOLOV5Impl:
     class YOLOV5Builder:
         def __init__(self):
             self._weights = 'weights/yolov5s.pt'
-            self._device = torch.device('cpu')
+            self._device = 'cpu'
             self._imgsz = [640] * 2
             self._conf_thres = 0.5
             self._iou_thres = 0.45
@@ -46,7 +47,7 @@ class YOLOV5Impl:
 
     def __init__(self, builder:YOLOV5Builder):
         self._weights = builder._weights
-        self._device = builder._device
+        self._device = select_device(builder._device)
         self._imgsz = builder._imgsz
         self._conf_thres = builder._conf_thres
         self._iou_thres = builder._iou_thres
