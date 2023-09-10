@@ -5,9 +5,11 @@ from yolov5_src.utils.plots import Annotator, colors
 from yolov5_src.utils.augmentations import letterbox
 from yolov5_src.models.common import DetectMultiBackend
 from typing import Dict
-import warnings
+import queue
 import copy
-from collections import OrderedDict
+import threading
+import warnings
+warnings.filterwarnings('always')
 
 
 class YOLOV5Impl:
@@ -39,6 +41,8 @@ class YOLOV5Impl:
         img = None
         imgProcessed = None
         pred = np.zeros((0, 0, 0))
+        is_used = False
+        lock = threading.Lock()
 
     def __init__(self, builder:YOLOV5Builder):
         self._weights = builder._weights
@@ -56,47 +60,59 @@ class YOLOV5Impl:
 
         # 延迟加载
         self._model = None
+        self._model_load_lock = threading.Lock()
 
-        self._img_infos:OrderedDict[str, YOLOV5Impl.ImgInfo] = OrderedDict()
+        # 图像、结果缓存
+        self._img_infos:Dict[int, YOLOV5Impl.ImgInfo] = dict()
+        self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
 
     def load_model(self):
-        self._model = DetectMultiBackend(self._weights, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
-        self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
+        if self._model is None:
+            with self._model_load_lock:
+                if self._model is None:
+                    self._model = DetectMultiBackend(self._weights, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
+                    self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
 
     @torch.no_grad()
     def detect_by_uid(self, uid) -> bool:
         if uid not in self._img_infos:
-            warnings.warn("该uid不存在")
+            warnings.warn("该uid不存在", UserWarning)
             return False
-        pred = self._model(self._img_infos[uid].imgProcessed)[0]
+        with self._img_infos[uid].lock:
+            pred = self._model(self._img_infos[uid].imgProcessed)[0]
         pred = non_max_suppression(prediction=pred,
                                           conf_thres=self._conf_thres,
                                           iou_thres=self._iou_thres,
                                           max_det=self._max_det)[0]
-        if len(pred):
-            pred[:, :4] = scale_boxes(self._img_infos[uid].imgProcessed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
-        self._img_infos[uid].pred = pred
+        with self._img_infos[uid].lock:
+            if len(pred):
+                pred[:, :4] = scale_boxes(self._img_infos[uid].imgProcessed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
+            self._img_infos[uid].pred = pred
 
     def get_result_by_uid(self, uid):
         result = []
-        if len(self._img_infos[uid].pred):
-            for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
-                c = int(cls)  # integer class
-                label = f'{self._model.names[c]}'
-                imgRows, imgCols, _ = self._img_infos[uid].img.shape
-                result.append([
-                    xyxy[0].item() / imgCols,
-                    xyxy[1].item() / imgRows,
-                    xyxy[2].item() / imgCols,
-                    xyxy[3].item() / imgRows,
-                    [[label, float(conf.cpu().numpy())]]
-                ])
-                if self._print_result is True:
-                    print('YoloImgInterface', result[-1])
+        with self._img_infos[uid].lock:
+            self._img_infos[uid].is_used = True
+            if len(self._img_infos[uid].pred):
+                for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
+                    c = int(cls)  # integer class
+                    label = f'{self._model.names[c]}'
+                    imgRows, imgCols, _ = self._img_infos[uid].img.shape
+                    result.append([
+                        xyxy[0].item() / imgCols,
+                        xyxy[1].item() / imgRows,
+                        xyxy[2].item() / imgCols,
+                        xyxy[3].item() / imgRows,
+                        [[label, float(conf.cpu().numpy())]]
+                    ])
+                    if self._print_result is True:
+                        print('YoloImgInterface', result[-1])
         return result
 
     def get_imglabeled_by_uid(self, uid):
-        annotator = Annotator(self._img, line_width=3, example=str(self._model.names))
+        with self._img_infos[uid].lock:
+            annotator = Annotator(self._img, line_width=3, example=str(self._model.names))
+        self._img_infos[uid].is_used = True
         if len(self._img_infos[uid].pred):
             for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
                 c = int(cls)  # integer class
@@ -106,11 +122,16 @@ class YOLOV5Impl:
 
     def add_img(self, uid, img) -> bool:
         if uid in self._img_infos:
-            warnings.warn("该uid已存在")
+            warnings.warn("该uid已存在", UserWarning)
             return False
         if (len(self._img_infos) >= self._max_cache):
-            key, _ = self._img_infos.popitem(last=False)
-            print(f'YOLOv5缓存已满 弹出uid={key}')
+            uid_rm = self._img_uid_fifo.get()
+            if not self._img_infos[uid_rm].is_used:
+                warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
+            with self._img_infos[uid_rm].lock:
+                self._img_infos.pop(uid_rm)
+            print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
+        self._img_uid_fifo.put(uid)
         self._img_infos[uid] = YOLOV5Impl.ImgInfo()
         self._img_infos[uid].img = copy.deepcopy(img)
         self._img = img
