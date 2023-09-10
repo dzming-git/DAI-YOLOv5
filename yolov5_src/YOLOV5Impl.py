@@ -112,7 +112,7 @@ class YOLOV5Impl:
 
     def get_imglabeled_by_uid(self, uid):
         with self._img_infos[uid].lock:
-            annotator = Annotator(self._img, line_width=3, example=str(self._model.names))
+            annotator = Annotator(self._img_infos[uid].img, line_width=3, example=str(self._model.names))
         self._img_infos[uid].is_used = True
         if len(self._img_infos[uid].pred):
             for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
@@ -135,10 +135,9 @@ class YOLOV5Impl:
         self._img_uid_fifo.put(uid)
         self._img_infos[uid] = YOLOV5Impl.ImgInfo()
         self._img_infos[uid].img = copy.deepcopy(img)
-        self._img = img
 
         # 处理图片
-        img = letterbox(self._img, self._imgsz, stride=self._model.stride)[0]
+        img = letterbox(self._img_infos[uid].img, self._imgsz, stride=self._model.stride)[0]
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
         img = torch.from_numpy(img).to(self._device)
