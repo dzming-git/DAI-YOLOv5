@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test",
+            "name": "app",
             "type": "python",
             "python": "/bin/python3",
             "request": "launch",
-            "program": "test.py",
+            "program": "app.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
