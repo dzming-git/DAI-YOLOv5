@@ -22,8 +22,11 @@ RUN pip3 install -r workspace/requirements_others.txt -i https://pypi.tuna.tsing
 # git 配置
 RUN git config --global user.name "dzming" 
 RUN git config --global user.email "dzm_work@163.com"
-RUN git config --global http.proxy 127.0.0.1:7890
-RUN git config --global https.proxy 127.0.0.1:7890
+
+EXPOSE 8001
 
 COPY . ./workspace
 WORKDIR /workspace
+
+# docker build . -t yolov5:latest
+# echo 140.82.114.4 github.com >> /etc/hosts
