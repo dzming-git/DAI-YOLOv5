@@ -35,6 +35,10 @@ class YOLOV5Impl:
             self._print_result = False
         
         def build(self):
+            if not torch.cuda.is_available():
+                if self._device != 'cpu':
+                    warnings.warn("cuda is not available", UserWarning)
+                self._device = 'cpu'
             return YOLOV5Impl(self)
 
     class ImgInfo:
@@ -67,12 +71,18 @@ class YOLOV5Impl:
         self._img_infos:Dict[int, YOLOV5Impl.ImgInfo] = dict()
         self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
 
-    def load_model(self):
+    def load_model(self) -> bool:
+        is_load_success = False
         if self._model is None:
             with self._model_load_lock:
                 if self._model is None:
-                    self._model = DetectMultiBackend(self._weights, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
-                    self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
+                    try:
+                        self._model = DetectMultiBackend(self._weights, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
+                        self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
+                        is_load_success = True
+                    except Exception as e:
+                        warnings.warn(e, UserWarning)
+        return is_load_success
 
     @torch.no_grad()
     def detect_by_uid(self, uid) -> bool:
