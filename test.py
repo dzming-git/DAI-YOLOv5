@@ -8,13 +8,13 @@ impl.load_model()
 
 app = Flask(__name__)
 
-@app.route('/get_img_labeled/<uid>')
+@app.route('/get_img_labeled/<uid>.jpg')
 def get_img_labeled(uid):
     uid = int(uid)
     img1 = impl.get_imglabeled_by_uid(uid)
-    cv2.imwrite(f'{uid}.jpg', img1)
-    image_data = open(f'{uid}.jpg', "rb").read()
-    response = make_response(image_data)
+    _, compressed_image = cv2.imencode('.jpg', img1, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    image_bytes = compressed_image.tobytes()
+    response = make_response(image_bytes)
     response.headers['Content-Type'] = 'image/jpg'
     return response
 
