@@ -9,11 +9,8 @@ if __name__ == '__main__':
     yolov5_builder._device = 'cuda:0'
     yolov5_impl = yolov5_builder.build()
     
-
-
     yolov5_service_builder = YOLOv5Service.SingletonBuilder()
     yolov5_service_builder.set_host('0.0.0.0')
-    yolov5_service_builder.set_port('8001')
     yolov5_service_builder.build()
     yolov5_service = yolov5_service_builder.get_instance()
     yolov5_service.set_yolov5_impl(yolov5_impl)

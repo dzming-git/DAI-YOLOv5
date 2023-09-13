@@ -28,7 +28,7 @@ class YOLOv5Service:
         
         def __init__(self):
             self._host = "127.0.0.1"
-            self._port = "8001"
+            self._port = "5000"
                 
         def set_host(self, host:str) -> None:
             self._host = host

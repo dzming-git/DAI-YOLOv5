@@ -23,7 +23,7 @@ RUN pip3 install -r workspace/requirements_others.txt -i https://pypi.tuna.tsing
 RUN git config --global user.name "dzming" 
 RUN git config --global user.email "dzm_work@163.com"
 
-EXPOSE 8001
+EXPOSE 5000
 
 COPY . ./workspace
 WORKDIR /workspace
