@@ -22,7 +22,8 @@
             "command":[
                 "docker", "run", 
                 "-it",
-                "-v", "/home/dzming/workspace/DAI/Infrastructure-Layer/weights:/workspace/weights",
+                "-v", "~/DAI/weights:/workspace/weights",
+                "-v", "~/DAI/pkgs:/workspace/pkgs",
                 "--gpus", "all",
                 "-p", "0.0.0.0:8001:5000",
                 "yolov5", "/bin/bash"
