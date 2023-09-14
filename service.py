@@ -91,7 +91,7 @@ class YOLOv5Service:
                 return response
             return render_template('index.html')
 
-        server = make_server(host=self._host, port=int(self._port), app=app)
+        server = make_server(host=self._host, port=int(self._port), app=app, threaded=True)
         return server
     
     def start_server(self):
