@@ -7,6 +7,7 @@ import _thread
 class TaskInfo:
     def __init__(self):
         self.id: int
+        self.pre_service_name: str
         self.pre_service_ip: str
         self.pre_service_port: str
         self.img_type: str
