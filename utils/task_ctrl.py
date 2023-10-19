@@ -1,7 +1,7 @@
-from common.utils.singleton import singleton
+from common.utils import singleton
 from typing import Dict
 from queue import Queue
-from common.grpcs.img_trans.img_trans_client import ImgTransClient
+from grpcs.img_trans.img_trans_client import ImgTransClient
 import _thread
 
 class TaskInfo:
