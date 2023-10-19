@@ -63,6 +63,9 @@ class YOLOV5Impl:
         self._data = builder._data
         self._max_cache = builder._max_cache
 
+        # 是否打印
+        self._print_result = builder._print_result
+
         # 延迟加载
         self._model = None
         self._model_load_lock = threading.Lock()
@@ -70,6 +73,7 @@ class YOLOV5Impl:
         # 图像、结果缓存
         self._img_infos:Dict[int, YOLOV5Impl.ImgInfo] = dict()
         self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
+
 
     def load_model(self) -> bool:
         is_load_success = False
