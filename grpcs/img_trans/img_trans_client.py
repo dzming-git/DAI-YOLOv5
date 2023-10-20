@@ -2,6 +2,7 @@ from common.grpcs.img_trans import img_trans_pb2, img_trans_pb2_grpc
 import grpc
 import cv2
 from typing import Dict, Tuple
+import numpy as np
 
 # TODO: 粗糙实现
 class ImgTransClient:
