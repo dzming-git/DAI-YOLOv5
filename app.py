@@ -7,20 +7,24 @@ config = Config()
 
 def connect_consul():
     from common.consul_client import ConsulClient
+    from common.service_info import ServiceInfo
     from common.utils import get_local_ip_address
+
+    consul_client = ConsulClient()
+    consul_client.consul_ip = config.consul_ip
+    consul_client.consul_port = config.consul_port
+
+    service_info = ServiceInfo()
     host = get_local_ip_address()
     service_name = config.service_name
     service_port = config.service_port
-    consul_client = ConsulClient()
-    consul_client\
-        .set_consul_address(config.consul_ip)\
-        .set_consul_port(config.consul_port)\
-        .set_service_address(host)\
-        .set_service_port(service_port)\
-        .set_service_id(f'{service_name}-{host}-{service_port}')\
-        .set_service_name(service_name)\
-        .set_service_tags(config.service_tags)\
-        .register_service()
+    service_info.service_ip = host
+    service_info.service_port = service_port
+    service_info.service_name = service_name
+    service_info.service_id = f'{service_name}-{host}-{service_port}'
+    service_info.service_tags = config.service_tags
+
+    consul_client.register_service(service_info)
 
 if __name__ == '__main__':
     connect_consul()
