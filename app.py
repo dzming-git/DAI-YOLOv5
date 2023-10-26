@@ -1,20 +1,25 @@
 from yolov5_src import YOLOV5Impl
 from grpcs.task_coordinate.task_coordinate_server import task_coordinate_serve
 from utils.task_ctrl import TaskCtrl
+from config import Config
+
+config = Config()
 
 def connect_consul():
     from common.consul_client import ConsulClient
     from common.utils import get_local_ip_address
     host = get_local_ip_address()
-    port = 5000
-    service_name = 'target detection'
+    service_name = config.service_name
+    service_port = config.service_port
     consul_client = ConsulClient()
     consul_client\
+        .set_consul_address(config.consul_ip)\
+        .set_consul_port(config.consul_port)\
         .set_service_address(host)\
-        .set_service_port(port)\
-        .set_service_id(f'{service_name}-{host}-{port}')\
+        .set_service_port(service_port)\
+        .set_service_id(f'{service_name}-{host}-{service_port}')\
         .set_service_name(service_name)\
-        .set_service_tags(['yolov5', 'grpc'])\
+        .set_service_tags(config.service_tags)\
         .register_service()
 
 if __name__ == '__main__':
