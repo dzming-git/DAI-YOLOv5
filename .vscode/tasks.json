@@ -45,32 +45,32 @@
             ]
         },
         {
-            "label": "service_coordinate.proto mkdir",
+            "label": "service_coordinator.proto mkdir",
             "type": "shell",
             "command": "mkdir",
             "args": [
-                "-p", "./generated/protos/service_coordinate/"
+                "-p", "./generated/protos/service_coordinator/"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             }
         },
         {
-            "label": "service_coordinate.proto copy",
+            "label": "service_coordinator.proto copy",
             "type": "shell",
             "command": "cp",
             "args": [
-                "./resources/protos/service_coordinate.proto", "./generated/protos/service_coordinate/"
+                "./resources/protos/service_coordinator.proto", "./generated/protos/service_coordinator/"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn":[
-                "service_coordinate.proto mkdir"
+                "service_coordinator.proto mkdir"
             ]
         },
         {
-            "label": "service_coordinate.proto generate",
+            "label": "service_coordinator.proto generate",
             "type": "shell",
             "command": "python3",
             "args": [
@@ -78,20 +78,20 @@
                 "-I", ".",
                 "--python_out=.", 
                 "--grpc_python_out=.",
-                "./generated/protos/service_coordinate/service_coordinate.proto"
+                "./generated/protos/service_coordinator/service_coordinator.proto"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn":[
-                "service_coordinate.proto copy"
+                "service_coordinator.proto copy"
             ]
         },
         {
             "label": "proto generate",
             "dependsOn": [
                 "image_harmony.proto generate",
-                "service_coordinate.proto generate"
+                "service_coordinator.proto generate"
             ]
         },
         {

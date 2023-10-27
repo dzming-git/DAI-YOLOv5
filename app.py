@@ -1,5 +1,5 @@
 from yolov5_src import YOLOV5Impl
-from src.grpc.service_coordinate.service_coordinate_server import service_coordinate_serve
+from src.grpc.service_coordinator.service_coordinator_server import service_coordinator_serve
 from src.task_ctrl.task_ctrl import TaskCtrl
 from src.config.config import Config
 
@@ -40,4 +40,4 @@ if __name__ == '__main__':
     task_ctrl = TaskCtrl()
     task_ctrl.set_yolov5_impl(yolov5_impl)
     task_ctrl.listening()
-    service_coordinate_serve('0.0.0.0', '5000', 10)
+    service_coordinator_serve('0.0.0.0', '5000', 10)
