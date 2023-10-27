@@ -2,6 +2,99 @@
     "version": "2.0.0",
     "tasks":[
         {
+            "label": "img_trans.proto mkdir",
+            "type": "shell",
+            "command": "mkdir",
+            "args": [
+                "-p", "./generated/protos/img_trans/"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "img_trans.proto copy",
+            "type": "shell",
+            "command": "cp",
+            "args": [
+                "./resources/protos/img_trans.proto", "./generated/protos/img_trans/"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn":[
+                "img_trans.proto mkdir"
+            ]
+        },
+        {
+            "label": "img_trans.proto generate",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "-m", "grpc_tools.protoc",
+                "-I", ".",
+                "--python_out=.", 
+                "--grpc_python_out=.",
+                "./generated/protos/img_trans/img_trans.proto"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn":[
+                "img_trans.proto copy"
+            ]
+        },
+        {
+            "label": "service_coordinate.proto mkdir",
+            "type": "shell",
+            "command": "mkdir",
+            "args": [
+                "-p", "./generated/protos/service_coordinate/"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "service_coordinate.proto copy",
+            "type": "shell",
+            "command": "cp",
+            "args": [
+                "./resources/protos/service_coordinate.proto", "./generated/protos/service_coordinate/"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn":[
+                "service_coordinate.proto mkdir"
+            ]
+        },
+        {
+            "label": "service_coordinate.proto generate",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "-m", "grpc_tools.protoc",
+                "-I", ".",
+                "--python_out=.", 
+                "--grpc_python_out=.",
+                "./generated/protos/service_coordinate/service_coordinate.proto"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn":[
+                "service_coordinate.proto copy"
+            ]
+        },
+        {
+            "label": "proto generate",
+            "dependsOn": [
+                "img_trans.proto generate",
+                "service_coordinate.proto generate"
+            ]
+        },
+        {
             "label": "docker-run-windows",
             "type": "shell",
             "command":[

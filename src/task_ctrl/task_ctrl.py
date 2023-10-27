@@ -1,7 +1,7 @@
-from common.utils import singleton
+from src.utils import singleton
 from typing import Dict
 from queue import Queue
-from grpcs.img_trans.img_trans_client import ImgTransClient
+from src.grpc.img_trans.img_trans_client import ImgTransClient
 import _thread
 from yolov5_src import YOLOV5Impl
 

@@ -1,14 +1,14 @@
 from yolov5_src import YOLOV5Impl
-from grpcs.task_coordinate.task_coordinate_server import task_coordinate_serve
-from utils.task_ctrl import TaskCtrl
-from config import Config
+from src.grpc.service_coordinate.service_coordinate_server import service_coordinate_serve
+from src.task_ctrl.task_ctrl import TaskCtrl
+from src.config.config import Config
 
 config = Config()
 
 def connect_consul():
-    from common.consul_client import ConsulClient
-    from common.service_info import ServiceInfo
-    from common.utils import get_local_ip_address
+    from src.consul import ConsulClient
+    from src.consul import ServiceInfo
+    from src.utils import get_local_ip_address
 
     consul_client = ConsulClient()
     consul_client.consul_ip = config.consul_ip
@@ -37,4 +37,4 @@ if __name__ == '__main__':
     task_ctrl = TaskCtrl()
     task_ctrl.set_yolov5_impl(yolov5_impl)
     task_ctrl.listening()
-    task_coordinate_serve('0.0.0.0', '5000', 10)
+    service_coordinate_serve('0.0.0.0', '5000', 10)

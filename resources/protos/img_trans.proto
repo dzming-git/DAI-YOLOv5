@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package imgTrans;
+
+service Communicate {
+    rpc registerImgTransService(RegisterImgTransServiceRequest) returns (RegisterImgTransServiceResponse) {}
+    rpc unregisterImgTransService(UnregisterImgTransServiceRequest) returns (UnregisterImgTransServiceResponse) {}
+    rpc getImg(GetImgRequest) returns (GetImgResponse) {}
+}
+
+message NullRequest {}
+message NullResponse {}
+
+// 每次通信的状态
+message CustomResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message UnregisterImgTransServiceRequest {
+    int64 connectId = 1;
+}
+
+message UnregisterImgTransServiceResponse {
+    CustomResponse response = 1;
+}
+
+message RegisterImgTransServiceRequest {
+    message Argument {
+        string key = 1;
+        string value = 2;
+    }
+    string imgType = 1;
+    repeated Argument args = 2;
+}
+
+message RegisterImgTransServiceResponse {
+    CustomResponse response = 1;
+    int64 connectId = 2;
+}
+
+message GetImgRequest {
+    // 连接ID
+    int64 connectId = 1;
+    // 图像压缩格式
+    string format = 2;
+    // 图像压缩参数
+    repeated int32 params = 3;
+    // 图像的期望大小
+    int32 expectedW = 4;
+    int32 expectedH = 5;
+}
+
+message GetImgResponse {
+    CustomResponse response = 1;
+    int32 w = 2;
+    int32 h = 3;
+    int64 imgId = 4;
+    bytes buf = 5;
+}

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package serviceCoordinate;
+
+service Communicate {
+    rpc informPreviousServiceInfo(InformPreviousServiceInfoRequest) returns (InformPreviousServiceInfoResponse) {}
+}
+
+message NullRequest {}
+message NullResponse {}
+
+// 每次通信的状态
+message CustomResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message InformPreviousServiceInfoRequest {
+    message Argument {
+        string key = 1;
+        string value = 2;
+    }
+    int64 taskId = 1;
+    string preServiceName = 2;
+    string preServiceIp = 3;
+    string preServicePort = 4;
+    repeated Argument args = 5;
+}
+
+message InformPreviousServiceInfoResponse {
+    CustomResponse response = 1;
+}

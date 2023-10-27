@@ -1,13 +1,13 @@
 from concurrent import futures
 import time
 import grpc
-from common.grpcs.task_coordinate import task_coordinate_pb2, task_coordinate_pb2_grpc
+from generated.protos.service_coordinate import service_coordinate_pb2, service_coordinate_pb2_grpc
 from typing import Dict
-from utils.task_ctrl import TaskCtrl, TaskInfo
+from src.task_ctrl.task_ctrl import TaskCtrl, TaskInfo
 
 VALID_PRE_SERVICE = ['image harmony']
 
-class TaskCoordinateServer(task_coordinate_pb2_grpc.CommunicateServicer):
+class ServiceCoordinateServer(service_coordinate_pb2_grpc.CommunicateServicer):
     def informPreviousServiceInfo(self, request, context):
         response_code = 200
         response_message = ''
@@ -33,19 +33,19 @@ class TaskCoordinateServer(task_coordinate_pb2_grpc.CommunicateServicer):
             response_code = 400
             response_message += e
 
-        response = task_coordinate_pb2.InformPreviousServiceInfoResponse()
+        response = service_coordinate_pb2.InformPreviousServiceInfoResponse()
         response.response.code = response_code
         response.response.message = response_message
         return response
 
-def task_coordinate_serve(ip, port, maxWorkers):
+def service_coordinate_serve(ip, port, maxWorkers):
     address = f'{ip}:{port}'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=maxWorkers))
-    task_coordinate_pb2_grpc.add_CommunicateServicer_to_server(TaskCoordinateServer(), server)
+    service_coordinate_pb2_grpc.add_CommunicateServicer_to_server(ServiceCoordinateServer(), server)
     server.add_insecure_port(address)
     server.start()
 
-    print(f'task_coordinate_server listening on {address}')
+    print(f'service_coordinate_server listening on {address}')
     try:
         while True:
             time.sleep(60 * 60 * 24)

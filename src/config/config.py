@@ -1,4 +1,4 @@
-from common.utils import singleton
+from src.utils import singleton
 import yaml
 from typing import List
 

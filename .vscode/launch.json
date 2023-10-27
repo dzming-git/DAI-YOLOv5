@@ -11,6 +11,7 @@
             "request": "launch",
             "program": "app.py",
             "console": "integratedTerminal",
+            "preLaunchTask": "proto generate",
             "justMyCode": true
         }
     ]
