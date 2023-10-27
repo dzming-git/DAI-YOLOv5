@@ -1,7 +1,7 @@
 from src.utils import singleton
 from typing import Dict
 from queue import Queue
-from src.grpc.image_harmony.image_harmony_client import ImageHarmonyClient
+from src.grpc.clients.image_harmony.image_harmony_client import ImageHarmonyClient
 import _thread
 from yolov5_src import YOLOV5Impl
 

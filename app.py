@@ -1,5 +1,5 @@
 from yolov5_src import YOLOV5Impl
-from src.grpc.service_coordinator.service_coordinator_server import service_coordinator_serve
+from src.grpc.servers.service_coordinator.service_coordinator_server import service_coordinator_serve
 from src.task_ctrl.task_ctrl import TaskCtrl
 from src.config.config import Config
 
