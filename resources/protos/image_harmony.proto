@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package imgTrans;
+package imageHarmony;
 
 service Communicate {
     rpc registerImgTransService(RegisterImgTransServiceRequest) returns (RegisterImgTransServiceResponse) {}

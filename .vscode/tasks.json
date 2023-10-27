@@ -2,32 +2,32 @@
     "version": "2.0.0",
     "tasks":[
         {
-            "label": "img_trans.proto mkdir",
+            "label": "image_harmony.proto mkdir",
             "type": "shell",
             "command": "mkdir",
             "args": [
-                "-p", "./generated/protos/img_trans/"
+                "-p", "./generated/protos/image_harmony/"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             }
         },
         {
-            "label": "img_trans.proto copy",
+            "label": "image_harmony.proto copy",
             "type": "shell",
             "command": "cp",
             "args": [
-                "./resources/protos/img_trans.proto", "./generated/protos/img_trans/"
+                "./resources/protos/image_harmony.proto", "./generated/protos/image_harmony/"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn":[
-                "img_trans.proto mkdir"
+                "image_harmony.proto mkdir"
             ]
         },
         {
-            "label": "img_trans.proto generate",
+            "label": "image_harmony.proto generate",
             "type": "shell",
             "command": "python3",
             "args": [
@@ -35,13 +35,13 @@
                 "-I", ".",
                 "--python_out=.", 
                 "--grpc_python_out=.",
-                "./generated/protos/img_trans/img_trans.proto"
+                "./generated/protos/image_harmony/image_harmony.proto"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn":[
-                "img_trans.proto copy"
+                "image_harmony.proto copy"
             ]
         },
         {
@@ -90,7 +90,7 @@
         {
             "label": "proto generate",
             "dependsOn": [
-                "img_trans.proto generate",
+                "image_harmony.proto generate",
                 "service_coordinate.proto generate"
             ]
         },

@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 import numpy as np
 
 # TODO: 粗糙实现
-class ImgTransClient:
+class ImageHarmonyClient:
     def __init__(self, ip:str, port: str):
         options = [('grpc.max_receive_message_length', 1024 * 1024 * 1024)]
         self.conn = grpc.insecure_channel(f'{ip}:{port}', options=options)

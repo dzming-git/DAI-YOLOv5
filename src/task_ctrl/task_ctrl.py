@@ -1,7 +1,7 @@
 from src.utils import singleton
 from typing import Dict
 from queue import Queue
-from src.grpc.img_trans.img_trans_client import ImgTransClient
+from src.grpc.image_harmony.image_harmony_client import ImageHarmonyClient
 import _thread
 from yolov5_src import YOLOV5Impl
 
@@ -14,7 +14,7 @@ class TaskInfo:
         self.pre_service_port: str
         self.img_type: str
         self.img_args: Dict[str, str] = {}
-        self.img_trans_client: ImgTransClient = None
+        self.image_harmony_client: ImageHarmonyClient = None
 
 
 @singleton
@@ -33,8 +33,8 @@ class TaskCtrl:
                 task = self.tasks_queue.get()
                 task_id = task.id
                 if task_id not in self.tasks:
-                    task.img_trans_client = ImgTransClient(task.pre_service_ip, task.pre_service_port)
-                    task.img_trans_client.set_args(task.img_type, task.img_args)
+                    task.image_harmony_client = ImageHarmony(task.pre_service_ip, task.pre_service_port)
+                    task.image_harmony_client.set_args(task.img_type, task.img_args)
                     task.stop = False
                     self.tasks[task_id] = task
 
@@ -45,7 +45,7 @@ class TaskCtrl:
     def progress(self, task_id: int):
         assert self.yolov5_impl is not None, 'yolov5 impl is not set\n'
         while not self.tasks[task_id].stop:
-            img_id, img = self.tasks[task_id].img_trans_client.get_img()
+            img_id, img = self.tasks[task_id].image_harmony_client.get_img()
             self.yolov5_impl.add_img(img_id, img)
             self.yolov5_impl.detect_by_uid(img_id)
             result = self.yolov5_impl.get_result_by_uid(img_id)
