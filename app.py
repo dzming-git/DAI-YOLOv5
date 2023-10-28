@@ -1,7 +1,8 @@
 from yolov5_src import YOLOV5Impl
-from src.grpc.servers.service_coordinator.service_coordinator_server import service_coordinator_serve
 from src.task_ctrl.task_ctrl import TaskCtrl
 from src.config.config import Config
+from src.grpc.servers.grpc_server_builder import GRPCServerBuilder
+import time
 
 config = Config()
 
@@ -29,6 +30,16 @@ def connect_consul():
 
         consul_client.register_service(service_info)
 
+def gRPC_server_start():
+    gRPCServerBuilder = GRPCServerBuilder()
+    gRPCServer = gRPCServerBuilder.build()
+
+    from src.grpc.servers.service_coordinator.service_coordinator_server import ServiceCoordinatorServer
+    service_coordinator_server = ServiceCoordinatorServer()
+    service_coordinator_server.joinInServer(gRPCServer)
+
+    gRPCServer.start()
+
 if __name__ == '__main__':
     connect_consul()
     
@@ -40,4 +51,8 @@ if __name__ == '__main__':
     task_ctrl = TaskCtrl()
     task_ctrl.set_yolov5_impl(yolov5_impl)
     task_ctrl.listening()
-    service_coordinator_serve('0.0.0.0', '5000', 10)
+    
+    gRPC_server_start()
+
+    while True:
+        time.sleep(0xFFFF)

@@ -37,17 +37,6 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         response.response.code = response_code
         response.response.message = response_message
         return response
-
-def service_coordinator_serve(ip, port, maxWorkers):
-    address = f'{ip}:{port}'
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=maxWorkers))
-    service_coordinator_pb2_grpc.add_CommunicateServicer_to_server(ServiceCoordinatorServer(), server)
-    server.add_insecure_port(address)
-    server.start()
-
-    print(f'service_coordinator_server listening on {address}')
-    try:
-        while True:
-            time.sleep(60 * 60 * 24)
-    except KeyboardInterrupt:
-        server.stop(0)
+    
+    def joinInServer(self, server):
+        service_coordinator_pb2_grpc.add_CommunicateServicer_to_server(ServiceCoordinatorServer(), server.server)
