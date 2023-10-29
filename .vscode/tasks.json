@@ -2,97 +2,15 @@
     "version": "2.0.0",
     "tasks":[
         {
-            "label": "image_harmony.proto mkdir",
-            "type": "shell",
-            "command": "mkdir",
-            "args": [
-                "-p", "./generated/protos/image_harmony/"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
-            "label": "image_harmony.proto copy",
-            "type": "shell",
-            "command": "cp",
-            "args": [
-                "./resources/protos/image_harmony.proto", "./generated/protos/image_harmony/"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn":[
-                "image_harmony.proto mkdir"
-            ]
-        },
-        {
-            "label": "image_harmony.proto generate",
-            "type": "shell",
-            "command": "python3",
-            "args": [
-                "-m", "grpc_tools.protoc",
-                "-I", ".",
-                "--python_out=.", 
-                "--grpc_python_out=.",
-                "./generated/protos/image_harmony/image_harmony.proto"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn":[
-                "image_harmony.proto copy"
-            ]
-        },
-        {
-            "label": "service_coordinator.proto mkdir",
-            "type": "shell",
-            "command": "mkdir",
-            "args": [
-                "-p", "./generated/protos/service_coordinator/"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
-            "label": "service_coordinator.proto copy",
-            "type": "shell",
-            "command": "cp",
-            "args": [
-                "./resources/protos/service_coordinator.proto", "./generated/protos/service_coordinator/"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn":[
-                "service_coordinator.proto mkdir"
-            ]
-        },
-        {
-            "label": "service_coordinator.proto generate",
-            "type": "shell",
-            "command": "python3",
-            "args": [
-                "-m", "grpc_tools.protoc",
-                "-I", ".",
-                "--python_out=.", 
-                "--grpc_python_out=.",
-                "./generated/protos/service_coordinator/service_coordinator.proto"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn":[
-                "service_coordinator.proto copy"
-            ]
-        },
-        {
             "label": "proto generate",
-            "dependsOn": [
-                "image_harmony.proto generate",
-                "service_coordinator.proto generate"
-            ]
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "./proto_generate.sh"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
         },
         {
             "label": "docker-run-windows",
