@@ -49,7 +49,7 @@ class YOLOV5Impl:
         uid = -1
         img = None
         img_shape = np.zeros((0, 0, 0))
-        imgProcessed = None
+        img_processed = None
         pred = np.zeros((0, 0, 0))
         is_used = False
         lock = threading.Lock()
@@ -100,18 +100,18 @@ class YOLOV5Impl:
             warnings.warn("该uid不存在", UserWarning)
             return False
         with self._img_infos[uid].lock:
-            pred = self._model(self._img_infos[uid].imgProcessed)[0]
+            pred = self._model(self._img_infos[uid].img_processed)[0]
         pred = non_max_suppression(prediction=pred,
                                           conf_thres=self._conf_thres,
                                           iou_thres=self._iou_thres,
                                           max_det=self._max_det)[0]
         with self._img_infos[uid].lock:
             if len(pred):
-                pred[:, :4] = scale_boxes(self._img_infos[uid].imgProcessed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
+                pred[:, :4] = scale_boxes(self._img_infos[uid].img_processed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
             self._img_infos[uid].pred = pred
         
-        del self._img_infos[uid].imgProcessed
-        self._img_infos[uid].imgProcessed = None
+        del self._img_infos[uid].img_processed
+        self._img_infos[uid].img_processed = None
 
     def get_result_by_uid(self, uid):
         result = []
@@ -174,5 +174,5 @@ class YOLOV5Impl:
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
-        self._img_infos[uid].imgProcessed = copy.deepcopy(img)
+        self._img_infos[uid].img_processed = copy.deepcopy(img)
         return True
