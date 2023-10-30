@@ -1,10 +1,13 @@
-from yolov5_src import YOLOV5Impl
+from src.wrapper.yolov5_detector import YOLOv5Detector
 from src.task_ctrl.task_ctrl import TaskCtrl
 from src.config.config import Config
 from src.grpc.servers.grpc_server_builder import GRPCServerBuilder
 import time
+from src.grpc.servers.service_coordinator.service_coordinator_server import ServiceCoordinatorServer
 
+service_coordinator_server = ServiceCoordinatorServer()
 config = Config()
+gRPCServer = None
 
 def connect_consul():
     from src.consul import ConsulClient
@@ -31,28 +34,25 @@ def connect_consul():
         consul_client.register_service(service_info)
 
 def gRPC_server_start():
+    global gRPCServer
     gRPCServerBuilder = GRPCServerBuilder()
     gRPCServer = gRPCServerBuilder.build()
-
-    from src.grpc.servers.service_coordinator.service_coordinator_server import ServiceCoordinatorServer
-    service_coordinator_server = ServiceCoordinatorServer()
     service_coordinator_server.joinInServer(gRPCServer)
-
     gRPCServer.start()
 
 if __name__ == '__main__':
     connect_consul()
     
-    yolov5_builder = YOLOV5Impl.YOLOV5Builder()
+    yolov5_builder = YOLOv5Detector.YOLOv5Builder()
     yolov5_builder.device = 'cuda:0'
-    yolov5_impl = yolov5_builder.build()
-    yolov5_impl.load_model()
+    yolov5_detector = yolov5_builder.build()
+    yolov5_detector.load_model()
 
     task_ctrl = TaskCtrl()
-    task_ctrl.set_yolov5_impl(yolov5_impl)
+    task_ctrl.set_detector(yolov5_detector)
     task_ctrl.listening()
     
     gRPC_server_start()
 
     while True:
-        time.sleep(0xFFFF)
+        time.sleep(60 * 60 * 24)

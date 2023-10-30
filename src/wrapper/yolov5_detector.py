@@ -14,8 +14,8 @@ import warnings
 warnings.filterwarnings('always')
 
 
-class YOLOV5Impl:
-    class YOLOV5Builder:
+class YOLOv5Detector:
+    class YOLOv5Builder:
         def __init__(self):
             self.weights = 'weights/yolov5s.pt'
             self.device = 'cpu'
@@ -43,7 +43,7 @@ class YOLOV5Impl:
                 if self.device != 'cpu':
                     warnings.warn("cuda is not available", UserWarning)
                 self.device = 'cpu'
-            return YOLOV5Impl(self)
+            return YOLOv5Detector(self)
 
     class ImgInfo:
         uid = -1
@@ -54,7 +54,7 @@ class YOLOV5Impl:
         is_used = False
         lock = threading.Lock()
 
-    def __init__(self, builder:YOLOV5Builder):
+    def __init__(self, builder:YOLOv5Builder):
         self._weights = builder.weights
         self._device = select_device(builder.device)
         self._imgsz = builder.imgsz
@@ -107,7 +107,7 @@ class YOLOV5Impl:
                                           max_det=self._max_det)[0]
         with self._img_infos[uid].lock:
             if len(pred):
-                pred[:, :4] = scale_boxes(self._img_infos[uid].img_processed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
+                pred[:, :4] = scale_boxes(self._img_infos[uid].img_processed.shape[2:], pred[:, :4], self._img_infos[uid].img_shape).round()
             self._img_infos[uid].pred = pred
         
         del self._img_infos[uid].img_processed
@@ -160,7 +160,7 @@ class YOLOV5Impl:
                 self._img_infos.pop(uid_rm)
             print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
         self._img_uid_fifo.put(uid)
-        self._img_infos[uid] = YOLOV5Impl.ImgInfo()
+        self._img_infos[uid] = YOLOv5Detector.ImgInfo()
         if self._save_img_to_cache:
             self._img_infos[uid].img = copy.deepcopy(img)
         self._img_infos[uid].img_shape = img.shape
