@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import cv2
 from yolov5_src.utils.general import non_max_suppression, scale_boxes, check_img_size
 from yolov5_src.utils.plots import Annotator, colors
 from yolov5_src.utils.augmentations import letterbox
@@ -28,6 +29,9 @@ class YOLOV5Impl:
             self.dnn = False
             self.data = 'yolov5_src/data/coco128.yaml'
 
+            # 是否将缓存图像，默认不缓存
+            self.save_img_to_cache = False
+
             # 最大缓存10个图像结果
             self.max_cache = 10
 
@@ -44,6 +48,7 @@ class YOLOV5Impl:
     class ImgInfo:
         uid = -1
         img = None
+        img_shape = np.zeros((0, 0, 0))
         imgProcessed = None
         pred = np.zeros((0, 0, 0))
         is_used = False
@@ -71,6 +76,7 @@ class YOLOV5Impl:
         self._model_load_lock = threading.Lock()
 
         # 图像、结果缓存
+        self._save_img_to_cache = builder.save_img_to_cache
         self._img_infos:Dict[int, YOLOV5Impl.ImgInfo] = dict()
         self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
 
@@ -103,6 +109,9 @@ class YOLOV5Impl:
             if len(pred):
                 pred[:, :4] = scale_boxes(self._img_infos[uid].imgProcessed.shape[2:], pred[:, :4], self._img_infos[uid].img.shape).round()
             self._img_infos[uid].pred = pred
+        
+        del self._img_infos[uid].imgProcessed
+        self._img_infos[uid].imgProcessed = None
 
     def get_result_by_uid(self, uid):
         result = []
@@ -112,7 +121,7 @@ class YOLOV5Impl:
                 for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
                     c = int(cls)  # integer class
                     label = f'{self._model.names[c]}'
-                    imgRows, imgCols, _ = self._img_infos[uid].img.shape
+                    imgRows, imgCols, _ = self._img_infos[uid].img_shape
                     result.append([
                         xyxy[0].item() / imgCols,
                         xyxy[1].item() / imgRows,
@@ -125,6 +134,10 @@ class YOLOV5Impl:
         return result
 
     def get_imglabeled_by_uid(self, uid):
+        if not self._save_img_to_cache:
+            warnings.warn("save_img_to_cache is False", UserWarning)
+            return cv2.Mat()
+
         with self._img_infos[uid].lock:
             annotator = Annotator(self._img_infos[uid].img, line_width=3, example=str(self._model.names))
         self._img_infos[uid].is_used = True
@@ -148,10 +161,12 @@ class YOLOV5Impl:
             print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
         self._img_uid_fifo.put(uid)
         self._img_infos[uid] = YOLOV5Impl.ImgInfo()
-        self._img_infos[uid].img = copy.deepcopy(img)
+        if self._save_img_to_cache:
+            self._img_infos[uid].img = copy.deepcopy(img)
+        self._img_infos[uid].img_shape = img.shape
 
         # 处理图片
-        img = letterbox(self._img_infos[uid].img, self._imgsz, stride=self._model.stride)[0]
+        img = letterbox(img, self._imgsz, stride=self._model.stride)[0]
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
         img = torch.from_numpy(img).to(self._device)
