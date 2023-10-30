@@ -16,29 +16,29 @@ warnings.filterwarnings('always')
 class YOLOV5Impl:
     class YOLOV5Builder:
         def __init__(self):
-            self._weights = 'weights/yolov5s.pt'
-            self._device = 'cpu'
-            self._imgsz = [640] * 2
-            self._conf_thres = 0.5
-            self._iou_thres = 0.45
-            self._max_det = 1000
-            self._agnostic_nms = False
-            self._augment = False
-            self._half = False
-            self._dnn = False
-            self._data = 'yolov5_src/data/coco128.yaml'
+            self.weights = 'weights/yolov5s.pt'
+            self.device = 'cpu'
+            self.imgsz = [640] * 2
+            self.conf_thres = 0.5
+            self.iou_thres = 0.45
+            self.max_det = 1000
+            self.agnostic_nms = False
+            self.augment = False
+            self.half = False
+            self.dnn = False
+            self.data = 'yolov5_src/data/coco128.yaml'
 
             # 最大缓存10个图像结果
-            self._max_cache = 10
+            self.max_cache = 10
 
             # get_result_by_uid 是否打印结果
-            self._print_result = False
+            self.print_result = False
         
         def build(self):
             if not torch.cuda.is_available():
-                if self._device != 'cpu':
+                if self.device != 'cpu':
                     warnings.warn("cuda is not available", UserWarning)
-                self._device = 'cpu'
+                self.device = 'cpu'
             return YOLOV5Impl(self)
 
     class ImgInfo:
@@ -50,21 +50,21 @@ class YOLOV5Impl:
         lock = threading.Lock()
 
     def __init__(self, builder:YOLOV5Builder):
-        self._weights = builder._weights
-        self._device = select_device(builder._device)
-        self._imgsz = builder._imgsz
-        self._conf_thres = builder._conf_thres
-        self._iou_thres = builder._iou_thres
-        self._max_det = builder._max_det
-        self._agnostic_nms = builder._agnostic_nms
-        self._augment = builder._augment
-        self._half = builder._half & (self._device.type != 'cpu')
-        self._dnn = builder._dnn
-        self._data = builder._data
-        self._max_cache = builder._max_cache
+        self._weights = builder.weights
+        self._device = select_device(builder.device)
+        self._imgsz = builder.imgsz
+        self._conf_thres = builder.conf_thres
+        self._iou_thres = builder.iou_thres
+        self._max_det = builder.max_det
+        self._agnostic_nms = builder.agnostic_nms
+        self._augment = builder.augment
+        self._half = builder.half & (self._device.type != 'cpu')
+        self._dnn = builder.dnn
+        self._data = builder.data
+        self._max_cache = builder.max_cache
 
         # 是否打印
-        self._print_result = builder._print_result
+        self._print_result = builder.print_result
 
         # 延迟加载
         self._model = None

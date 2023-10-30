@@ -44,7 +44,7 @@ if __name__ == '__main__':
     connect_consul()
     
     yolov5_builder = YOLOV5Impl.YOLOV5Builder()
-    yolov5_builder._device = 'cuda:0'
+    yolov5_builder.device = 'cuda:0'
     yolov5_impl = yolov5_builder.build()
     yolov5_impl.load_model()
 
