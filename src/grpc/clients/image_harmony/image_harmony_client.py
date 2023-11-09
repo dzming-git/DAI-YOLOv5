@@ -16,7 +16,7 @@ class ImageHarmonyClient:
         if -1 != self.connect_id:
             unregister_image_harmony_service_request = image_harmony_pb2.UnregisterImgTransServiceRequest()
             unregister_image_harmony_service_request.connectId = self.connect_id
-            unregister_image_harmony_service_response = client.unregisterImgTransService(unregister_image_harmony_service_request)
+            unregister_image_harmony_service_response = self.client.unregisterImgTransService(unregister_image_harmony_service_request)
             
             response = unregister_image_harmony_service_response.response
             print(f'{response.code}: {response.message}')
