@@ -1,5 +1,5 @@
 from src.wrapper.yolov5_detector import YOLOv5Detector
-from task_manager.task_manager import TaskCtrl
+from src.task_manager.task_manager import TaskCtrl
 from src.config.config import Config
 from src.grpc.servers.grpc_server_builder import GRPCServerBuilder
 import time
