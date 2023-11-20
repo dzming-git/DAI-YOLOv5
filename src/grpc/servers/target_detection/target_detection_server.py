@@ -1,6 +1,6 @@
 from generated.protos.target_detection import target_detection_pb2, target_detection_pb2_grpc
 from typing import Dict
-from src.task_ctrl.task_ctrl import TaskCtrl, TaskInfo
+from task_manager.task_manager import TaskCtrl, TaskInfo
 
 VALID_PRE_SERVICE = ['image harmony']
 
