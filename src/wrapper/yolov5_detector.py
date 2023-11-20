@@ -77,7 +77,7 @@ class YOLOv5Detector:
 
         # 图像、结果缓存
         self._save_img_to_cache = builder.save_img_to_cache
-        self._img_infos:Dict[int, YOLOV5Impl.ImgInfo] = dict()
+        self._img_infos:Dict[int, YOLOv5Detector.ImgInfo] = dict()
         self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
 
 
@@ -158,7 +158,7 @@ class YOLOv5Detector:
                 warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
             with self._img_infos[uid_rm].lock:
                 self._img_infos.pop(uid_rm)
-            print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
+            # print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
         self._img_uid_fifo.put(uid)
         self._img_infos[uid] = YOLOv5Detector.ImgInfo()
         if self._save_img_to_cache:

@@ -42,14 +42,8 @@ def gRPC_server_start():
 
 if __name__ == '__main__':
     connect_consul()
-    
-    yolov5_builder = YOLOv5Detector.YOLOv5Builder()
-    yolov5_builder.device = 'cuda:0'
-    yolov5_detector = yolov5_builder.build()
-    yolov5_detector.load_model()
 
     task_ctrl = TaskCtrl()
-    task_ctrl.set_detector(yolov5_detector)
     task_ctrl.listening()
     
     gRPC_server_start()

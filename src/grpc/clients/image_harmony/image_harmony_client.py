@@ -10,7 +10,7 @@ class ImageHarmonyClient:
         options = [('grpc.max_receive_message_length', 1024 * 1024 * 1024)]
         self.conn = grpc.insecure_channel(f'{ip}:{port}', options=options)
         self.client = image_harmony_pb2_grpc.CommunicateStub(channel=self.conn)
-        self.connect_id: int = -1
+        self.connect_id: int = 0
     
     def __del__(self):
         if -1 != self.connect_id:
@@ -21,6 +21,9 @@ class ImageHarmonyClient:
             response = unregister_image_harmony_service_response.response
             print(f'{response.code}: {response.message}')
 
+    
+    def set_connect_id(self, connect_id: int):
+        self.connect_id = connect_id
     
     def set_args(self, img_type: str, args: Dict[str, str]):
         register_image_harmony_service_request = image_harmony_pb2.RegisterImgTransServiceRequest()

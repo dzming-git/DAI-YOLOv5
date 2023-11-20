@@ -12,42 +12,67 @@ class TaskInfo:
         self.pre_service_name: str
         self.pre_service_ip: str
         self.pre_service_port: str
-        self.img_type: str
-        self.img_args: Dict[str, str] = {}
         self.image_harmony_client: ImageHarmonyClient = None
-
-
-@singleton
-class TaskCtrl:
-    def __init__(self):
-        self.tasks_queue: Queue[TaskInfo] = Queue(maxsize=20)
-        self.tasks: Dict[int, TaskInfo] = {}
+        self.connect_id: int  # 与image harmony连接的id，根据该id获取图像
+        self.weight_path: str
         self.detector: YOLOv5Detector = None
+        self.is_pre_service_set = False
+        self.is_detector_set = False
+        self.step = 2
     
-    def set_detector(self, detector: YOLOv5Detector):
-        self.detector = detector
+    def set_pre_service(self, pre_service_name: str, pre_service_ip: str, pre_service_port: str):
+        self.pre_service_name = pre_service_name
+        self.pre_service_ip = pre_service_ip
+        self.pre_service_port = pre_service_port
+        if not self.is_pre_service_set:
+            self.is_pre_service_set = True
+            self.step -= 1
+    
+    def set_cur_service(self, weight_path: str, connect_id: int):
+        self.weight_path = weight_path
+        self.connect_id = connect_id
+        if not self.is_detector_set:
+            self.is_detector_set = True
+            self.step -= 1
+    
+    def start(self):
+        # 设置图像源
+        self.image_harmony_client = ImageHarmonyClient(self.pre_service_ip, self.pre_service_port)
+        self.image_harmony_client.set_connect_id(self.connect_id)
+        # 加载权重
+        yolov5_builder = YOLOv5Detector.YOLOv5Builder()
+        yolov5_builder.weights = self.weight_path
+        self.detector = yolov5_builder.build()
+        self.detector.load_model()
+        
+        self.stop = False
+        _thread.start_new_thread(self.progress, ())
 
-    def listening(self):
-        def wait_for_task():
-            while True:
-                task = self.tasks_queue.get()
-                task_id = task.id
-                if task_id not in self.tasks:
-                    task.image_harmony_client = ImageHarmonyClient(task.pre_service_ip, task.pre_service_port)
-                    task.image_harmony_client.set_args(task.img_type, task.img_args)
-                    task.stop = False
-                    self.tasks[task_id] = task
-
-                    _thread.start_new_thread(self.progress, (task_id,))
-
-        _thread.start_new_thread(wait_for_task, ())
-
-    def progress(self, task_id: int):
+    def progress(self):
         assert self.detector is not None, 'yolov5 detector is not set\n'
-        while not self.tasks[task_id].stop:
-            img_id, img = self.tasks[task_id].image_harmony_client.get_img()
+        assert self.image_harmony_client is not None, 'image harmony client is not set\n'
+        while not self.stop:
+            img_id, img = self.image_harmony_client.get_img()
             self.detector.add_img(img_id, img)
             self.detector.detect_by_uid(img_id)
             result = self.detector.get_result_by_uid(img_id)
             if (result):
                 print(result)
+
+@singleton
+class TaskCtrl:
+    def __init__(self):
+        self.tasks_queue: Queue[TaskInfo] = Queue(maxsize=20)
+        self.incomplete_tasks: Dict[int, TaskInfo] = {}
+        self.tasks: Dict[int, TaskInfo] = {}
+    
+    def set_detector(self, task_id: int, detector: YOLOv5Detector):
+        self.tasks[task_id].detector = detector
+
+    def listening(self):
+        def wait_for_task():
+            while True:
+                task = self.tasks_queue.get()
+                task.start()
+
+        _thread.start_new_thread(wait_for_task, ())

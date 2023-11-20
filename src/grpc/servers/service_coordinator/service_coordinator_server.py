@@ -13,22 +13,61 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         response_message = ''
         
         try:
-            task_info = TaskInfo()
-            task_info.id = request.taskId
-            task_info.pre_service_name = request.preServiceName
-            assert request.preServiceName in VALID_PRE_SERVICE, 'invalid pre service\n'
-            task_info.pre_service_ip = request.preServiceIp
-            task_info.pre_service_port = request.preServicePort
-            for arg in request.args:
-                # 特殊参数
-                if 'ImgType' == arg.key:
-                    task_info.img_type = arg.value
-                    continue
-                # 普通参数
-                task_info.img_args[arg.key] = arg.value
-            assert task_info.img_type, 'ImgType is not set\n'
             task_ctrl = TaskCtrl()
-            task_ctrl.tasks_queue.put(task_info)
+            task_id = request.taskId
+            assert task_id not in task_ctrl.tasks, 'task id already exists\n'
+            if task_id not in task_ctrl.incomplete_tasks:
+                task_ctrl.incomplete_tasks[task_id] = TaskInfo()
+                task_ctrl.incomplete_tasks[task_id].id = request.taskId
+            assert request.preServiceName in VALID_PRE_SERVICE, 'invalid pre service\n'
+            
+            task_ctrl.incomplete_tasks[task_id].set_pre_service(
+                pre_service_name=request.preServiceName,
+                pre_service_ip=request.preServiceIp,
+                pre_service_port=request.preServicePort)
+            if (0 == task_ctrl.incomplete_tasks[task_id].step):
+                task_info = task_ctrl.incomplete_tasks[task_id]
+                task_ctrl.tasks[task_id] = task_info
+                task_ctrl.tasks_queue.put(task_info)
+                task_ctrl.incomplete_tasks.popitem(task_id)
+        except Exception as e:
+            response_code = 400
+            response_message += e
+
+        response = service_coordinator_pb2.InformPreviousServiceInfoResponse()
+        response.response.code = response_code
+        response.response.message = response_message
+        return response
+    
+    def informCurrentServiceInfo(self, request, context):
+        response_code = 200
+        response_message = ''
+        # TODO: 目前只支持weight、ConnectID
+        try:
+            task_ctrl = TaskCtrl()
+            task_id = request.taskId
+            # assert task_id not in task_ctrl.tasks, 'task id already exists\n'
+            if task_id not in task_ctrl.incomplete_tasks:
+                task_ctrl.incomplete_tasks[task_id] = TaskInfo()
+                task_ctrl.incomplete_tasks[task_id].id = request.taskId
+            weight = ''
+            connect_id = 0
+            for arg in request.args:
+                if 'Weight' == arg.key:
+                    weight = arg.value
+                if 'ConnectID' == arg.key:
+                    connect_id = int(arg.value)
+            assert weight, 'Error: Missing parameter \'Weight\'\n'
+            assert connect_id, 'Error: Missing parameter \'ConnectID\'\n'
+            task_ctrl.incomplete_tasks[task_id].set_cur_service(
+                weight_path=f'./weights/{weight}',
+                connect_id=connect_id
+            )
+            if (0 == task_ctrl.incomplete_tasks[task_id].step):
+                task_info = task_ctrl.incomplete_tasks[task_id]
+                task_ctrl.tasks[task_id] = task_info
+                task_ctrl.tasks_queue.put(task_info)
+                task_ctrl.incomplete_tasks.popitem(task_id)
         except Exception as e:
             response_code = 400
             response_message += e

@@ -1,8 +1,9 @@
 #!/bin/bash
 
 protos=(
-    "image_harmony"
-    "service_coordinator"
+    image_harmony
+    service_coordinator
+    target_detection
 )
 
 for proto in "${protos[@]}"
