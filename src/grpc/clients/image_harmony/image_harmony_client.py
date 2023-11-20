@@ -13,7 +13,7 @@ class ImageHarmonyClient:
         self.connect_id: int = 0
     
     def __del__(self):
-        if -1 != self.connect_id:
+        if 0 != self.connect_id:
             unregister_image_harmony_service_request = image_harmony_pb2.UnregisterImgTransServiceRequest()
             unregister_image_harmony_service_request.connectId = self.connect_id
             unregister_image_harmony_service_response = self.client.unregisterImgTransService(unregister_image_harmony_service_request)
@@ -49,7 +49,7 @@ class ImageHarmonyClient:
         response = get_img_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
-            return -1, cv2.Mat()
+            return 0, np.empty((0, 0, 0))
         img_id = get_img_response.imgId
         buf = get_img_response.buf
         nparr = np.frombuffer(buf, np.uint8)

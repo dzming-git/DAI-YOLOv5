@@ -53,6 +53,8 @@ class TaskInfo:
         assert self.image_harmony_client is not None, 'image harmony client is not set\n'
         while not self.stop:
             img_id, img = self.image_harmony_client.get_img()
+            if 0 == img_id:
+                continue
             self.detector.add_img(img_id, img)
             self.detector.detect_by_uid(img_id)
             result = self.detector.get_result_by_uid(img_id)
