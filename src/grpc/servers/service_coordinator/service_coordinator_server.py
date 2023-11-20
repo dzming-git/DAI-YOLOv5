@@ -3,7 +3,7 @@ import time
 import grpc
 from generated.protos.service_coordinator import service_coordinator_pb2, service_coordinator_pb2_grpc
 from typing import Dict
-from src.task_manager.task_manager import TaskCtrl, TaskInfo
+from src.task_manager.task_manager import TaskManager, TaskInfo
 
 VALID_PRE_SERVICE = ['image harmony']
 
@@ -13,7 +13,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         response_message = ''
         
         try:
-            task_manager = TaskCtrl()
+            task_manager = TaskManager()
             task_id = request.taskId
             assert task_id not in task_manager.tasks, 'task id already exists\n'
             if task_id not in task_manager.incomplete_tasks:
@@ -44,7 +44,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         response_message = ''
         # TODO: 目前只支持weight、ConnectID
         try:
-            task_manager = TaskCtrl()
+            task_manager = TaskManager()
             task_id = request.taskId
             # assert task_id not in task_manager.tasks, 'task id already exists\n'
             if task_id not in task_manager.incomplete_tasks:

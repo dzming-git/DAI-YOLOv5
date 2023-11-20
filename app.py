@@ -1,5 +1,5 @@
 from src.wrapper.yolov5_detector import YOLOv5Detector
-from src.task_manager.task_manager import TaskCtrl
+from src.task_manager.task_manager import TaskManager
 from src.config.config import Config
 from src.grpc.servers.grpc_server_builder import GRPCServerBuilder
 import time
@@ -43,7 +43,7 @@ def gRPC_server_start():
 if __name__ == '__main__':
     connect_consul()
 
-    task_manager = TaskCtrl()
+    task_manager = TaskManager()
     task_manager.listening()
     
     gRPC_server_start()

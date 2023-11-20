@@ -68,7 +68,7 @@ class TaskInfo:
                 print(result)
 
 @singleton
-class TaskCtrl:
+class TaskManager:
     def __init__(self):
         self.tasks_queue: Queue[TaskInfo] = Queue(maxsize=20)
         self.incomplete_tasks: Dict[int, TaskInfo] = {}
