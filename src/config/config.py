@@ -1,6 +1,6 @@
 from src.utils import singleton
 import yaml
-from typing import List
+from typing import List, Dict
 
 CONFIG_PATH = './.config.yml'
 
@@ -15,7 +15,7 @@ class Config:
         self.service_name: str
         self.service_port: str
         self.service_tags: List[str] = list()
-        self.weights: List[WeightInfo] = list()
+        self.weights_map: Dict[str, WeightInfo] = dict()
 
         #consul
         self.consul_ip: str
@@ -36,7 +36,7 @@ class Config:
             weight_info = WeightInfo()
             weight_info.file = weight['file']
             weight_info.labels = weight['labels']
-            self.weights.append(weight_info)
+            self.weights_map[weight_info.file] = weight_info
         
         consul_data = config_data.get('consul', {})
         self.consul_ip = consul_data.get('ip', '')

@@ -25,10 +25,11 @@ def connect_consul():
     service_info.service_port = service_port
     service_info.service_name = service_name
 
-    for weight in config.weights:
-        service_info.service_id = f'{service_name}-{weight.file}-{host}-{service_port}'
+    for weight_file in config.weights_map:
+        weight_info = config.weights_map[weight_file]
+        service_info.service_id = f'{service_name}-{weight_file}-{host}-{service_port}'
         service_info.service_tags = config.service_tags
-        for label in weight.labels:
+        for label in weight_info.labels:
             service_info.service_tags.append(f'label:{label}')
 
         consul_client.register_service(service_info)
