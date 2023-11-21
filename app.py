@@ -40,8 +40,8 @@ def gRPC_server_start():
     global gRPCServer
     gRPCServerBuilder = GRPCServerBuilder()
     gRPCServer = gRPCServerBuilder.build()
-    service_coordinator_server.joinInServer(gRPCServer)
-    target_detection_server.joinInServer(gRPCServer)
+    service_coordinator_server.join_in_server(gRPCServer)
+    target_detection_server.join_in_server(gRPCServer)
     gRPCServer.start()
 
 if __name__ == '__main__':

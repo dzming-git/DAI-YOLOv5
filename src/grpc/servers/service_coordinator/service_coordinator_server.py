@@ -77,5 +77,5 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         response.response.message = response_message
         return response
     
-    def joinInServer(self, server):
+    def join_in_server(self, server):
         service_coordinator_pb2_grpc.add_CommunicateServicer_to_server(self, server.server)

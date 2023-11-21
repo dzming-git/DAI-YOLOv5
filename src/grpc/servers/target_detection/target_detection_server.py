@@ -29,5 +29,5 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             response.labels.append(label)
         return response
     
-    def joinInServer(self, server):
+    def join_in_server(self, server):
         target_detection_pb2_grpc.add_CommunicateServicer_to_server(self, server.server)
