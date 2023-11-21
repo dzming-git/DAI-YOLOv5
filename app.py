@@ -4,8 +4,10 @@ from src.config.config import Config
 from src.grpc.servers.grpc_server_builder import GRPCServerBuilder
 import time
 from src.grpc.servers.service_coordinator.service_coordinator_server import ServiceCoordinatorServer
+from src.grpc.servers.target_detection.target_detection_server import TargetDetectionServer
 
 service_coordinator_server = ServiceCoordinatorServer()
+target_detection_server = TargetDetectionServer()
 config = Config()
 gRPCServer = None
 
@@ -39,6 +41,7 @@ def gRPC_server_start():
     gRPCServerBuilder = GRPCServerBuilder()
     gRPCServer = gRPCServerBuilder.build()
     service_coordinator_server.joinInServer(gRPCServer)
+    target_detection_server.joinInServer(gRPCServer)
     gRPCServer.start()
 
 if __name__ == '__main__':

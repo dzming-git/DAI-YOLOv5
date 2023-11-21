@@ -15,7 +15,7 @@ class TaskInfo:
         self.pre_service_port: str
         self.image_harmony_client: ImageHarmonyClient = None
         self.connect_id: int  # 与image harmony连接的id，根据该id获取图像
-        self.weight_path: str
+        self.weight: str
         self.is_pre_service_set = False
         self.is_detector_set = False
         self.step = 2
@@ -28,8 +28,8 @@ class TaskInfo:
             self.is_pre_service_set = True
             self.step -= 1
     
-    def set_cur_service(self, weight_path: str, connect_id: int):
-        self.weight_path = weight_path
+    def set_cur_service(self, weight: str, connect_id: int):
+        self.weight = weight
         self.connect_id = connect_id
         if not self.is_detector_set:
             self.is_detector_set = True
@@ -41,22 +41,22 @@ class TaskInfo:
         self.image_harmony_client.set_connect_id(self.connect_id)
         # 加载权重
         detector_manager = DetectorManager()
-        # TODO 暂时使用weight_path作为哈希值，未来将检测器的其他属性也考虑进去
-        if self.weight_path not in detector_manager.detector_map:
+        # TODO 暂时使用weight作为哈希值，未来将检测器的其他属性也考虑进去
+        if self.weight not in detector_manager.detector_map:
             yolov5_builder = YOLOv5Detector.YOLOv5Builder()
-            yolov5_builder.weights = self.weight_path
+            yolov5_builder.weight_path = f'./weights/{self.weight}'
             detector = yolov5_builder.build()
             detector.load_model()
-            detector_manager.detector_map[self.weight_path] = detector
+            detector_manager.detector_map[self.weight] = detector
         
         self.stop = False
         _thread.start_new_thread(self.progress, ())
 
     def progress(self):
         detector_manager = DetectorManager()
-        assert self.weight_path in detector_manager.detector_map and detector_manager.detector_map[self.weight_path] is not None, 'yolov5 detector is not set\n'
+        assert self.weight in detector_manager.detector_map and detector_manager.detector_map[self.weight] is not None, 'yolov5 detector is not set\n'
         assert self.image_harmony_client is not None, 'image harmony client is not set\n'
-        detector = detector_manager.detector_map[self.weight_path]
+        detector = detector_manager.detector_map[self.weight]
         while not self.stop:
             img_id, img = self.image_harmony_client.get_img()
             if 0 == img_id:

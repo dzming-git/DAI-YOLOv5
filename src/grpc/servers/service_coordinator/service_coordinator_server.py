@@ -60,7 +60,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
             assert weight, 'Error: Missing parameter \'Weight\'\n'
             assert connect_id, 'Error: Missing parameter \'ConnectID\'\n'
             task_manager.incomplete_tasks[task_id].set_cur_service(
-                weight_path=f'./weights/{weight}',
+                weight=weight,
                 connect_id=connect_id
             )
             if (0 == task_manager.incomplete_tasks[task_id].step):
