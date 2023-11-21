@@ -17,7 +17,7 @@ warnings.filterwarnings('always')
 class YOLOv5Detector:
     class YOLOv5Builder:
         def __init__(self):
-            self.weights = 'weights/yolov5s.pt'
+            self.weight_path = 'weights/yolov5s.pt'
             self.device = 'cpu'
             self.imgsz = [640] * 2
             self.conf_thres = 0.5
@@ -55,7 +55,7 @@ class YOLOv5Detector:
         lock = threading.Lock()
 
     def __init__(self, builder:YOLOv5Builder):
-        self._weights = builder.weights
+        self._weight_path = builder.weight_path
         self._device = select_device(builder.device)
         self._imgsz = builder.imgsz
         self._conf_thres = builder.conf_thres
@@ -87,7 +87,7 @@ class YOLOv5Detector:
             with self._model_load_lock:
                 if self._model is None:
                     try:
-                        self._model = DetectMultiBackend(self._weights, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
+                        self._model = DetectMultiBackend(self._weight_path, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
                         self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
                         is_load_success = True
                     except Exception as e:
