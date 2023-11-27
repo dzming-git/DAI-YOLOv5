@@ -11,5 +11,5 @@ class DetectorInfo:
 @singleton
 class DetectorManager:
     def __init__(self):
-        self.detector_map: Dict[str, DetectorInfo] = {}
+        self.detector_info_map: Dict[str, DetectorInfo] = {}
 
