@@ -79,6 +79,11 @@ class YOLOv5Detector:
         self._save_img_to_cache = builder.save_img_to_cache
         self._img_infos:Dict[int, YOLOv5Detector.ImgInfo] = dict()
         self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
+        
+        # 最新检测完成的uid
+        self.latest_detection_completed_uid = 0
+        # 最新添加图片的uid
+        self.latest_add_uid = 0
 
 
     def load_model(self) -> bool:
@@ -112,6 +117,7 @@ class YOLOv5Detector:
         
         del self._img_infos[uid].img_processed
         self._img_infos[uid].img_processed = None
+        self.latest_detection_completed_uid = uid
 
     def get_result_by_uid(self, uid):
         result = []
@@ -178,4 +184,5 @@ class YOLOv5Detector:
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
         self._img_infos[uid].img_processed = copy.deepcopy(img)
+        self.latest_add_uid = uid
         return True
