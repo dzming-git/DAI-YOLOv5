@@ -32,8 +32,8 @@ class YOLOv5Detector:
             # 是否将缓存图像，默认不缓存
             self.save_img_to_cache = False
 
-            # 最大缓存10个图像结果
-            self.max_cache = 10
+            # 最大缓存100个图像结果
+            self.max_cache = 100
 
             # get_result_by_uid 是否打印结果
             self.print_result = False
@@ -115,6 +115,8 @@ class YOLOv5Detector:
 
     def get_result_by_uid(self, uid):
         result = []
+        if uid not in self._img_infos:
+            return result
         with self._img_infos[uid].lock:
             self._img_infos[uid].is_used = True
             if len(self._img_infos[uid].pred):
@@ -127,7 +129,8 @@ class YOLOv5Detector:
                         xyxy[1].item() / imgRows,
                         xyxy[2].item() / imgCols,
                         xyxy[3].item() / imgRows,
-                        [[label, float(conf.cpu().numpy())]]
+                        c,
+                        float(conf.cpu().numpy())
                     ])
                     if self._print_result is True:
                         print('YoloImgInterface', result[-1])
