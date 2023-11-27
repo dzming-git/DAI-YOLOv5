@@ -1,21 +1,26 @@
 from generated.protos.target_detection import target_detection_pb2, target_detection_pb2_grpc
 from typing import Dict
 from src.task_manager.task_manager import TaskManager
+from src.detector_manager.detector_manager import DetectorManager
 from src.config.config import Config
 
 class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
+    def __init__(self):
+        self.task_manager = TaskManager()
+        self.detector_manager = DetectorManager()
+        self.config = Config()
+        
     def getResultMappingTable(self, request, context):
         response_code = 200
         response_message = ''
         labels = []
         try:
-            task_manager = TaskManager()
-            config = Config()
+            
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = task_manager.tasks[task_id].weight
-            assert weight in config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
-            weight_info = config.weights_map[weight]
+            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            weight = self.task_manager.tasks[task_id].weight
+            assert weight in self.config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
+            weight_info = self.config.weights_map[weight]
             labels = weight_info.labels
             
         except Exception as e:
@@ -27,6 +32,41 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         response.response.message = response_message
         for label in labels:
             response.labels.append(label)
+        return response
+
+    def getResultIndex(self, request, context):
+        response_code = 200
+        response_message = ''
+        results = []
+        # if 1:
+        try:
+            
+            task_id = request.taskId
+            image_id = request.imageId
+            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            weight = self.task_manager.tasks[task_id].weight
+            
+            # if weight in detector_manager.detector_info_map:
+            assert weight in self.detector_manager.detector_info_map, 'ERROR: aaaaa\n'
+            detector = self.detector_manager.detector_info_map[weight].detector
+            results = detector.get_result_by_uid(image_id)
+        except Exception as e:
+            response_code = 400
+            response_message += str(e)
+
+        response = target_detection_pb2.GetResultIndexResponse()
+        response.response.code = response_code
+        response.response.message = response_message
+        for result in results:
+            result_response = target_detection_pb2.GetResultIndexResponse().Result()
+            x1, y1, x2, y2, c, conf = result
+            result_response.labelId = c
+            result_response.confidence = conf
+            result_response.x1 = x1
+            result_response.y1 = y1
+            result_response.x2 = x2
+            result_response.y2 = y2
+            response.results.append(result_response)
         return response
     
     def join_in_server(self, server):
