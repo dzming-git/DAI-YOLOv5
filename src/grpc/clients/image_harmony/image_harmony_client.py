@@ -46,7 +46,7 @@ class ImageHarmonyClient:
         get_image_by_image_id_request.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
         get_image_by_image_id_request.expectedW = 640
         get_image_by_image_id_request.expectedH = 640
-        get_image_by_image_id_response = self.client.getImage(get_image_by_image_id_request)
+        get_image_by_image_id_response = self.client.getImageByImageId(get_image_by_image_id_request)
         response = get_image_by_image_id_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
