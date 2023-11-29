@@ -1,5 +1,6 @@
 from generated.protos.target_detection import target_detection_pb2, target_detection_pb2_grpc
 from typing import Dict
+import time
 from src.task_manager.task_manager import TaskManager
 from src.detector_manager.detector_manager import DetectorManager
 from src.config.config import Config
@@ -41,14 +42,31 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         try:
             task_id = request.taskId
             image_id = request.imageId
+            wait = request.wait
             assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             weight = self.task_manager.tasks[task_id].weight
             assert weight in self.detector_manager.detector_info_map, f'ERROR: {weight} has not been loaded.\n'
             detector = self.detector_manager.detector_info_map[weight].detector
+            image_id_exist = detector.check_uid_exist(image_id)
+            if not image_id_exist and wait:
+                self.task_manager.tasks[task_id].image_id_queue.put(image_id)
+            # 设置超时时间为 1 秒
+            timeout = 1
+            start_time = time.time()
+
+            # 等待检测完成
+            while detector.get_statue(image_id) != 0:
+                # 检查是否超过了超时时间
+                if time.time() - start_time > timeout:
+                    raise TimeoutError("等待超时")
+                
+                time.sleep(0.01)
+            
             results = detector.get_result_by_uid(image_id)
         except Exception as e:
             response_code = 400
             response_message += str(e)
+            print(e)
 
         response = target_detection_pb2.GetResultIndexByImageIdResponse()
         response.response.code = response_code
@@ -78,6 +96,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             detector = self.detector_manager.detector_info_map[weight].detector
             image_id = detector.latest_detection_completed_uid
             results = detector.get_result_by_uid(image_id)
+            # TODO results为None时会出bug
         except Exception as e:
             response_code = 400
             response_message += str(e)

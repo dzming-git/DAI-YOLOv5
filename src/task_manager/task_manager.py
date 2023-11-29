@@ -19,6 +19,7 @@ class TaskInfo:
         self.is_pre_service_set = False
         self.is_detector_set = False
         self.step = 2
+        self.image_id_queue: Queue[int] = Queue()
     
     def set_pre_service(self, pre_service_name: str, pre_service_ip: str, pre_service_port: str):
         self.pre_service_name = pre_service_name
@@ -49,12 +50,15 @@ class TaskInfo:
             detector.load_model()
             if self.weight not in detector_manager.detector_info_map:
                 detector_manager.detector_info_map[self.weight] = DetectorInfo()
+            # TODO 需要添加一个权重加载成功的判断
             detector_manager.detector_info_map[self.weight].weight_path = yolov5_builder.weight_path
             detector_manager.detector_info_map[self.weight].detector = detector
             detector_manager.detector_info_map[self.weight].cnt += 1
         
         self.stop = False
-        _thread.start_new_thread(self.progress, ())
+        # _thread.start_new_thread(self.progress, ())
+        # TODO 临时版本
+        _thread.start_new_thread(self.detect_by_image_id, ())
 
     def progress(self):
         # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
@@ -75,7 +79,24 @@ class TaskInfo:
             result = detector_info.detector.get_result_by_uid(image_id)
             if (result):
                 print(result)
-
+    
+    def detect_by_image_id(self):
+        detector_manager = DetectorManager()
+        assert self.weight in detector_manager.detector_info_map and detector_manager.detector_info_map[self.weight] is not None, 'yolov5 detector is not set\n'
+        assert self.image_harmony_client is not None, 'image harmony client is not set\n'
+        detector_info = detector_manager.detector_info_map[self.weight]
+        while not self.stop:
+            image_id_in_queue = self.image_id_queue.get()
+            image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue)
+            if 0 == image_id:
+                continue
+            if not detector_info.detector.add_img(image_id, image):
+                continue
+            detector_info.detector.detect_by_uid(image_id)
+            result = detector_info.detector.get_result_by_uid(image_id)
+            if (result):
+                print(result)
+                                                                                                                                           
 @singleton
 class TaskManager:
     def __init__(self):
