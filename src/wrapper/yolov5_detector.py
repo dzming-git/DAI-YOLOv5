@@ -13,6 +13,17 @@ import threading
 import warnings
 warnings.filterwarnings('always')
 
+# step说明
+# 0 完成检测图片
+# 1 开始检测图片
+# 2 完成添加图片
+# 3 开始添加图片
+# 4 完成添加uid
+DETECT_IMAGE_COMPLETE = 0
+DETECT_IMAGE_START = 1
+ADD_IMAGE_COMPLETE = 2
+ADD_IMAGE_START = 3
+ADD_UID_COMPLETE = 4
 
 class YOLOv5Detector:
     class YOLOv5Builder:
@@ -46,12 +57,13 @@ class YOLOv5Detector:
             return YOLOv5Detector(self)
 
     class ImgInfo:
-        uid = -1
+        uid = 0
         img = None
         img_shape = np.zeros((0, 0, 0))
         img_processed = None
         pred = np.zeros((0, 0, 0))
         is_used = False
+        step = ADD_UID_COMPLETE
         lock = threading.Lock()
 
     def __init__(self, builder:YOLOv5Builder):
@@ -85,7 +97,6 @@ class YOLOv5Detector:
         # 最新添加图片的uid
         self.latest_add_uid = 0
 
-
     def load_model(self) -> bool:
         is_load_success = False
         if self._model is None:
@@ -99,11 +110,40 @@ class YOLOv5Detector:
                         warnings.warn(e, UserWarning)
         return is_load_success
 
+    def check_uid_exist(self, uid) -> bool:
+        return uid in self._img_infos
+    
+    def get_statue(self, uid) -> int:
+        if not self.check_uid_exist(uid):
+            # warnings.warn("该uid不存在", UserWarning)
+            return -1
+        return self._img_infos[uid].step
+
+    def add_uid(self, uid) -> bool:
+        if self.check_uid_exist(uid):
+            warnings.warn("该uid已存在", UserWarning)
+            return False
+        # 清理溢出
+        if (len(self._img_infos) >= self._max_cache):
+            uid_rm = self._img_uid_fifo.get()
+            if not self._img_infos[uid_rm].is_used:
+                warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
+            with self._img_infos[uid_rm].lock:
+                self._img_infos.pop(uid_rm)
+            self._img_uid_fifo.put(uid)
+        self._img_infos[uid] = YOLOv5Detector.ImgInfo()
+        self._img_infos[uid].step = ADD_UID_COMPLETE
+        return True
+
     @torch.no_grad()
     def detect_by_uid(self, uid) -> bool:
-        if uid not in self._img_infos:
+        if not self.check_uid_exist(uid):
             warnings.warn("该uid不存在", UserWarning)
             return False
+        if self._img_infos[uid].step != ADD_IMAGE_COMPLETE:
+            warnings.warn("图片未添加完成", UserWarning)
+            return False
+        self._img_infos[uid].step = DETECT_IMAGE_START
         with self._img_infos[uid].lock:
             pred = self._model(self._img_infos[uid].img_processed)[0]
         pred = non_max_suppression(prediction=pred,
@@ -118,11 +158,16 @@ class YOLOv5Detector:
         del self._img_infos[uid].img_processed
         self._img_infos[uid].img_processed = None
         self.latest_detection_completed_uid = uid
+        self._img_infos[uid].step = DETECT_IMAGE_COMPLETE
 
     def get_result_by_uid(self, uid):
         result = []
-        if uid not in self._img_infos:
-            return result
+        if not self.check_uid_exist(uid):
+            warnings.warn("该uid不存在", UserWarning)
+            return None
+        if self._img_infos[uid].step != DETECT_IMAGE_COMPLETE:
+            warnings.warn("图片未添加完成", UserWarning)
+            return False
         with self._img_infos[uid].lock:
             self._img_infos[uid].is_used = True
             if len(self._img_infos[uid].pred):
@@ -158,22 +203,14 @@ class YOLOv5Detector:
         return img
 
     def add_img(self, uid, img) -> bool:
-        if uid in self._img_infos:
-            warnings.warn("该uid已存在", UserWarning)
+        if not self.check_uid_exist(uid):
+            self.add_uid(uid)
+        elif self._img_infos[uid].step != ADD_UID_COMPLETE:
+            print(self._img_infos[uid].step)
+            warnings.warn("重复添加", UserWarning)
             return False
-        if (len(self._img_infos) >= self._max_cache):
-            uid_rm = self._img_uid_fifo.get()
-            if not self._img_infos[uid_rm].is_used:
-                warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
-            with self._img_infos[uid_rm].lock:
-                self._img_infos.pop(uid_rm)
-            # print(f'YOLOv5缓存已满 弹出uid={uid_rm}')
-        self._img_uid_fifo.put(uid)
-        self._img_infos[uid] = YOLOv5Detector.ImgInfo()
-        if self._save_img_to_cache:
-            self._img_infos[uid].img = copy.deepcopy(img)
+        self._img_infos[uid].step = ADD_IMAGE_START
         self._img_infos[uid].img_shape = img.shape
-
         # 处理图片
         img = letterbox(img, self._imgsz, stride=self._model.stride)[0]
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
@@ -185,4 +222,5 @@ class YOLOv5Detector:
             img = img[None]  # expand for batch dim
         self._img_infos[uid].img_processed = copy.deepcopy(img)
         self.latest_add_uid = uid
+        self._img_infos[uid].step = ADD_IMAGE_COMPLETE
         return True
