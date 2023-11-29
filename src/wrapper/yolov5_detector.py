@@ -130,7 +130,7 @@ class YOLOv5Detector:
                 warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
             with self._img_infos[uid_rm].lock:
                 self._img_infos.pop(uid_rm)
-            self._img_uid_fifo.put(uid)
+        self._img_uid_fifo.put(uid)
         self._img_infos[uid] = YOLOv5Detector.ImgInfo()
         self._img_infos[uid].step = ADD_UID_COMPLETE
         return True
