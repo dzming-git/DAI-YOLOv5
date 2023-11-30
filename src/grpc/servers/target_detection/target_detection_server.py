@@ -34,11 +34,35 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             response.labels.append(label)
         return response
     
+    def loadModel(self, request, context):
+        response_code = 200
+        response_message = ''
+        try:
+            task_id = request.taskId
+            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            weight = self.task_manager.tasks[task_id].weight
+            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
+            detector_info = self.detector_manager.detector_info_map[weight]
+            detector = detector_info.detector
+            model_state = detector.check_model_state()
+            if model_state == y5d.NOT_LOADED:
+                detector.load_model()
+            elif model_state == y5d.LOADING:
+                response_message += 'Model is loading.\n'
+            elif model_state == y5d.LOADING_COMPLETED:
+                response_message += 'Model loading completed.\n'
+        except Exception as e:
+            response_code = 400
+            response_message += str(e)
+        response = target_detection_pb2.LoadModelResponse()
+        response.response.code = response_code
+        response.response.message = response_message
+        return response
+    
     def checkModelState(self, request, context):
         response_code = 200
         response_message = ''
         modelState = target_detection_pb2.ModelState.NotSet
-        results = []
         try:
             task_id = request.taskId
             assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
