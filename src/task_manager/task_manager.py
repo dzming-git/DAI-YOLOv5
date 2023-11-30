@@ -47,13 +47,14 @@ class TaskInfo:
             yolov5_builder = YOLOv5Detector.YOLOv5Builder()
             yolov5_builder.weight_path = f'./weights/{self.weight}'
             detector = yolov5_builder.build()
-            detector.load_model()
             if self.weight not in detector_manager.detector_info_map:
                 detector_manager.detector_info_map[self.weight] = DetectorInfo()
             # TODO 需要添加一个权重加载成功的判断
             detector_manager.detector_info_map[self.weight].weight_path = yolov5_builder.weight_path
             detector_manager.detector_info_map[self.weight].detector = detector
             detector_manager.detector_info_map[self.weight].cnt += 1
+            
+            detector.load_model()
         
         self.stop = False
         # _thread.start_new_thread(self.progress, ())
