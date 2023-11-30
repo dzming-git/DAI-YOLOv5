@@ -37,7 +37,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                 ok, msg = task_info.check()
                 if ok:
                     task_manager.tasks_queue.put(task_info)
-                    task_manager.incomplete_tasks.popitem(task_id)
+                    task_manager.incomplete_tasks.pop(task_id)
 
         except Exception as e:
             response_code = 400
@@ -90,7 +90,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                 ok, msg = task_info.check()
                 if ok:
                     task_manager.tasks_queue.put(task_info)
-                    task_manager.incomplete_tasks.popitem(task_id)
+                    task_manager.incomplete_tasks.pop(task_id)
         except Exception as e:
             response_code = 400
             response_message += str(e)
