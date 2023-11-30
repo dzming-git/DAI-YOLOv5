@@ -25,6 +25,11 @@ ADD_IMAGE_COMPLETE = 2
 ADD_IMAGE_START = 3
 ADD_UID_COMPLETE = 4
 
+# model_state说明
+LOADING_COMPLETED = 0
+LOADING = 1
+NOT_LOADED = 2
+
 class YOLOv5Detector:
     class YOLOv5Builder:
         def __init__(self):
@@ -85,6 +90,7 @@ class YOLOv5Detector:
 
         # 延迟加载
         self._model = None
+        self._model_state = NOT_LOADED
         self._model_load_lock = threading.Lock()
 
         # 图像、结果缓存
@@ -99,6 +105,7 @@ class YOLOv5Detector:
 
     def load_model(self) -> bool:
         is_load_success = False
+        self._model_state = LOADING
         if self._model is None:
             with self._model_load_lock:
                 if self._model is None:
@@ -108,7 +115,14 @@ class YOLOv5Detector:
                         is_load_success = True
                     except Exception as e:
                         warnings.warn(e, UserWarning)
+        if is_load_success:
+            self._model_state = LOADING_COMPLETED
+        else:
+            self._model_state = NOT_LOADED
         return is_load_success
+
+    def check_model_state(self) -> int:
+        return self._model_state
 
     def check_uid_exist(self, uid) -> bool:
         return uid in self._img_infos

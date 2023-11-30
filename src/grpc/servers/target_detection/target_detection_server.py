@@ -4,6 +4,7 @@ import time
 from src.task_manager.task_manager import TaskManager
 from src.detector_manager.detector_manager import DetectorManager
 from src.config.config import Config
+from src.wrapper import yolov5_detector as y5d
 
 class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def __init__(self):
@@ -16,14 +17,12 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         response_message = ''
         labels = []
         try:
-            
             task_id = request.taskId
             assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             weight = self.task_manager.tasks[task_id].weight
             assert weight in self.config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
             weight_info = self.config.weights_map[weight]
             labels = weight_info.labels
-            
         except Exception as e:
             response_code = 400
             response_message += str(e)
@@ -33,6 +32,37 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         response.response.message = response_message
         for label in labels:
             response.labels.append(label)
+        return response
+    
+    def checkModelState(self, request, context):
+        response_code = 200
+        response_message = ''
+        modelState = target_detection_pb2.ModelState.NotSet
+        results = []
+        try:
+            task_id = request.taskId
+            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            weight = self.task_manager.tasks[task_id].weight
+            if weight not in self.detector_manager.detector_info_map:
+                modelState = target_detection_pb2.ModelState.NotSet
+            else:
+                detector_info = self.detector_manager.detector_info_map[weight]
+                detector = detector_info.detector
+                model_state = detector.check_model_state()
+                if model_state == y5d.NOT_LOADED:
+                    modelState = target_detection_pb2.ModelState.NotLoaded
+                elif model_state == y5d.LOADING:
+                    modelState = target_detection_pb2.ModelState.Loading
+                elif model_state == y5d.LOADING_COMPLETED:
+                    modelState = target_detection_pb2.ModelState.LoadingCompleted
+        except Exception as e:
+            response_code = 400
+            response_message += str(e)
+
+        response = target_detection_pb2.CheckModelStateResponse()
+        response.response.code = response_code
+        response.response.message = response_message
+        response.modelState = modelState
         return response
 
     def getResultIndexByImageId(self, request, context):
@@ -45,7 +75,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             wait = request.wait
             assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.detector_manager.detector_info_map, f'ERROR: {weight} has not been loaded.\n'
+            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
             detector = self.detector_manager.detector_info_map[weight].detector
             image_id_exist = detector.check_uid_exist(image_id)
             if not image_id_exist and wait:
@@ -92,7 +122,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             task_id = request.taskId
             assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.detector_manager.detector_info_map, f'ERROR: {weight} has not been loaded.\n'
+            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
             detector = self.detector_manager.detector_info_map[weight].detector
             image_id = detector.latest_detection_completed_uid
             results = detector.get_result_by_uid(image_id)
