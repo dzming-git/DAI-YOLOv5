@@ -26,7 +26,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             
         except Exception as e:
             response_code = 400
-            response_message += e
+            response_message += str(e)
 
         response = target_detection_pb2.GetResultMappingTableResponse()
         response.response.code = response_code
