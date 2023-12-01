@@ -37,7 +37,7 @@ class ImageHarmonyClient:
         response = register_image_harmony_service_response.response
         print(f'{response.code}: {response.message}')
     
-    def get_image_by_image_id(self, image_id: int) -> Tuple[int, cv2.Mat]:
+    def get_image_by_image_id(self, image_id: int) -> Tuple[int, np.ndarray]:
         get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
         get_image_by_image_id_request.connectId = self.connect_id
         get_image_by_image_id_request.imageId = image_id
@@ -50,14 +50,14 @@ class ImageHarmonyClient:
         response = get_image_by_image_id_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
-            return 0, np.empty((0, 0, 0))
+            return 0, np.empty((0), dtype=np.uint8)
         image_id = get_image_by_image_id_response.imageId
         buf = get_image_by_image_id_response.buf
         nparr = np.frombuffer(buf, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return image_id, image
 
-    def get_latest_image(self) -> Tuple[int, cv2.Mat]:
+    def get_latest_image(self) -> Tuple[int, np.ndarray]:
         get_next_image_by_image_id_request = image_harmony_pb2.GetNextImageByImageIdRequest()
         get_next_image_by_image_id_request.connectId = self.connect_id
         get_next_image_by_image_id_request.imageId = 0
@@ -70,7 +70,7 @@ class ImageHarmonyClient:
         response = get_image_by_image_id_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
-            return 0, np.empty((0, 0, 0))
+            return 0, np.empty((0), dtype=np.uint8)
         image_id = get_image_by_image_id_response.imageId
         buf = get_image_by_image_id_response.buf
         nparr = np.frombuffer(buf, np.uint8)

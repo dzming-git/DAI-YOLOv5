@@ -1,5 +1,4 @@
 from generated.protos.target_detection import target_detection_pb2, target_detection_pb2_grpc
-from typing import Dict
 import time
 import traceback
 from src.task_manager.task_manager import TaskManager
