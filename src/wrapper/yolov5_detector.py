@@ -10,6 +10,7 @@ from typing import Dict
 import queue
 import copy
 import threading
+from src.model_manager.model_manager import ModelInfo, ModelManager
 import warnings
 warnings.filterwarnings('always')
 
@@ -25,15 +26,12 @@ ADD_IMAGE_COMPLETE = 2
 ADD_IMAGE_START = 3
 ADD_UID_COMPLETE = 4
 
-# model_state说明
-LOADING_COMPLETED = 0
-LOADING = 1
-NOT_LOADED = 2
+model_manager = ModelManager()
 
 class YOLOv5Detector:
     class YOLOv5Builder:
         def __init__(self):
-            self.weight_path = 'weights/yolov5s.pt'
+            self.weight = 'yolov5s.pt'
             self.device = 'cpu'
             self.imgsz = [640] * 2
             self.conf_thres = 0.5
@@ -43,7 +41,6 @@ class YOLOv5Detector:
             self.augment = False
             self.half = False
             self.dnn = False
-            self.data = 'yolov5_src/data/coco128.yaml'
 
             # 是否将缓存图像，默认不缓存
             self.save_img_to_cache = False
@@ -72,7 +69,7 @@ class YOLOv5Detector:
         lock = threading.Lock()
 
     def __init__(self, builder:YOLOv5Builder):
-        self._weight_path = builder.weight_path
+        self._weight = builder.weight
         self._device = select_device(builder.device)
         self._imgsz = builder.imgsz
         self._conf_thres = builder.conf_thres
@@ -82,16 +79,13 @@ class YOLOv5Detector:
         self._augment = builder.augment
         self._half = builder.half & (self._device.type != 'cpu')
         self._dnn = builder.dnn
-        self._data = builder.data
         self._max_cache = builder.max_cache
 
         # 是否打印
         self._print_result = builder.print_result
 
         # 延迟加载
-        self._model = None
-        self._model_state = NOT_LOADED
-        self._model_load_lock = threading.Lock()
+        self._model_info = model_manager.get_model_info(self._weight, self._device, self._dnn, self._half)
 
         # 图像、结果缓存
         self._save_img_to_cache = builder.save_img_to_cache
@@ -104,25 +98,8 @@ class YOLOv5Detector:
         self.latest_add_uid = 0
 
     def load_model(self) -> bool:
-        is_load_success = False
-        self._model_state = LOADING
-        if self._model is None:
-            with self._model_load_lock:
-                if self._model is None:
-                    try:
-                        self._model = DetectMultiBackend(self._weight_path, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
-                        self._imgsz = check_img_size(self._imgsz, s=self._model.stride)  # check image size
-                        is_load_success = True
-                    except Exception as e:
-                        warnings.warn(e, UserWarning)
-        if is_load_success:
-            self._model_state = LOADING_COMPLETED
-        else:
-            self._model_state = NOT_LOADED
+        is_load_success = self._model_info.start_using()
         return is_load_success
-
-    def check_model_state(self) -> int:
-        return self._model_state
 
     def check_uid_exist(self, uid) -> bool:
         return uid in self._img_infos
@@ -159,7 +136,7 @@ class YOLOv5Detector:
             return False
         self._img_infos[uid].step = DETECT_IMAGE_START
         with self._img_infos[uid].lock:
-            pred = self._model(self._img_infos[uid].img_processed)[0]
+            pred = self._model_info._model(self._img_infos[uid].img_processed)[0]
         pred = non_max_suppression(prediction=pred,
                                           conf_thres=self._conf_thres,
                                           iou_thres=self._iou_thres,
@@ -187,7 +164,7 @@ class YOLOv5Detector:
             if len(self._img_infos[uid].pred):
                 for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
                     c = int(cls)  # integer class
-                    label = f'{self._model.names[c]}'
+                    label = f'{self._model_info._model.names[c]}'
                     imgRows, imgCols, _ = self._img_infos[uid].img_shape
                     result.append([
                         xyxy[0].item() / imgCols,
@@ -207,12 +184,12 @@ class YOLOv5Detector:
             return cv2.Mat()
 
         with self._img_infos[uid].lock:
-            annotator = Annotator(self._img_infos[uid].img, line_width=3, example=str(self._model.names))
+            annotator = Annotator(self._img_infos[uid].img, line_width=3, example=str(self._model_info._model.names))
         self._img_infos[uid].is_used = True
         if len(self._img_infos[uid].pred):
             for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
                 c = int(cls)  # integer class
-                annotator.box_label(xyxy, f'{self._model.names[c]} {conf:.2f}', color=colors(c, True))
+                annotator.box_label(xyxy, f'{self._model_info._model.names[c]} {conf:.2f}', color=colors(c, True))
         img = annotator.result()
         return img
 
@@ -226,7 +203,7 @@ class YOLOv5Detector:
         self._img_infos[uid].step = ADD_IMAGE_START
         self._img_infos[uid].img_shape = img.shape
         # 处理图片
-        img = letterbox(img, self._imgsz, stride=self._model.stride)[0]
+        img = letterbox(img, self._imgsz, stride=self._model_info._model.stride)[0]
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
         img = torch.from_numpy(img).to(self._device)

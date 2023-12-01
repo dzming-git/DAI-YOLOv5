@@ -2,26 +2,25 @@ from generated.protos.target_detection import target_detection_pb2, target_detec
 from typing import Dict
 import time
 from src.task_manager.task_manager import TaskManager
-from src.detector_manager.detector_manager import DetectorManager
+from src.model_manager.model_manager import ModelManager
+from src.model_manager import model_manager as mm
 from src.config.config import Config
-from src.wrapper import yolov5_detector as y5d
+
+task_manager = TaskManager()
+model_manager = ModelManager()
+config = Config()
 
 class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
-    def __init__(self):
-        self.task_manager = TaskManager()
-        self.detector_manager = DetectorManager()
-        self.config = Config()
-        
     def getResultMappingTable(self, request, context):
         response_code = 200
         response_message = ''
         labels = []
         try:
             task_id = request.taskId
-            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
-            weight_info = self.config.weights_map[weight]
+            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            weight = task_manager.tasks[task_id].weight
+            assert weight in config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
+            weight_info = config.weights_map[weight]
             labels = weight_info.labels
         except Exception as e:
             response_code = 400
@@ -39,17 +38,19 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         response_message = ''
         try:
             task_id = request.taskId
-            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
-            detector_info = self.detector_manager.detector_info_map[weight]
-            detector = detector_info.detector
-            model_state = detector.check_model_state()
-            if model_state == y5d.NOT_LOADED:
+            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            detector = task_manager.tasks[task_id].detector
+            weight = detector._weight
+            device = detector._device
+            dnn = detector._dnn
+            half = detector._half
+            model_info = model_manager.get_model_info(weight, device, dnn, half)
+            model_state = model_info.get_state()
+            if model_state == mm.NOT_LOADED:
                 detector.load_model()
-            elif model_state == y5d.LOADING:
+            elif model_state == mm.LOADING:
                 response_message += 'Model is loading.\n'
-            elif model_state == y5d.LOADING_COMPLETED:
+            elif model_state == mm.LOADING_COMPLETED:
                 response_message += 'Model loading completed.\n'
         except Exception as e:
             response_code = 400
@@ -65,20 +66,20 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         modelState = target_detection_pb2.ModelState.NotSet
         try:
             task_id = request.taskId
-            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = self.task_manager.tasks[task_id].weight
-            if weight not in self.detector_manager.detector_info_map:
-                modelState = target_detection_pb2.ModelState.NotSet
-            else:
-                detector_info = self.detector_manager.detector_info_map[weight]
-                detector = detector_info.detector
-                model_state = detector.check_model_state()
-                if model_state == y5d.NOT_LOADED:
-                    modelState = target_detection_pb2.ModelState.NotLoaded
-                elif model_state == y5d.LOADING:
-                    modelState = target_detection_pb2.ModelState.Loading
-                elif model_state == y5d.LOADING_COMPLETED:
-                    modelState = target_detection_pb2.ModelState.LoadingCompleted
+            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            detector = task_manager.tasks[task_id].detector
+            weight = detector._weight
+            device = detector._device
+            dnn = detector._dnn
+            half = detector._half
+            model_info = model_manager.get_model_info(weight, device, dnn, half)
+            model_state = model_info.get_state()
+            if model_state == mm.NOT_LOADED:
+                modelState = target_detection_pb2.ModelState.NotLoaded
+            elif model_state == mm.LOADING:
+                modelState = target_detection_pb2.ModelState.Loading
+            elif model_state == mm.LOADING_COMPLETED:
+                modelState = target_detection_pb2.ModelState.LoadingCompleted
         except Exception as e:
             response_code = 400
             response_message += str(e)
@@ -97,13 +98,11 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             task_id = request.taskId
             image_id = request.imageId
             wait = request.wait
-            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
-            detector = self.detector_manager.detector_info_map[weight].detector
+            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            detector = task_manager.tasks[task_id].detector
             image_id_exist = detector.check_uid_exist(image_id)
             if not image_id_exist and wait:
-                self.task_manager.tasks[task_id].image_id_queue.put(image_id)
+                task_manager.tasks[task_id].image_id_queue.put(image_id)
             # 设置超时时间为 1 秒
             timeout = 1
             start_time = time.time()
@@ -144,10 +143,8 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
         image_id = 0
         try:
             task_id = request.taskId
-            assert task_id in self.task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            weight = self.task_manager.tasks[task_id].weight
-            assert weight in self.detector_manager.detector_info_map, f'ERROR: can not find {weight} in detector_info_map.\n'
-            detector = self.detector_manager.detector_info_map[weight].detector
+            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            detector = task_manager.tasks[task_id].detector
             image_id = detector.latest_detection_completed_uid
             results = detector.get_result_by_uid(image_id)
             # TODO results为None时会出bug

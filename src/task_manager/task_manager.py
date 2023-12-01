@@ -4,7 +4,6 @@ from queue import Queue
 from src.grpc.clients.image_harmony.image_harmony_client import ImageHarmonyClient
 import _thread
 from src.wrapper.yolov5_detector import YOLOv5Detector
-from src.detector_manager.detector_manager import DetectorManager, DetectorInfo
 
 class TaskInfo:
     def __init__(self):
@@ -17,6 +16,7 @@ class TaskInfo:
         self.connect_id: int = 0  # 与image harmony连接的id，根据该id获取图像
         self.weight: str = ''
         self.image_id_queue: Queue[int] = Queue()
+        self.detector: YOLOv5Detector = None
     
     def set_pre_service(self, pre_service_name: str, pre_service_ip: str, pre_service_port: str):
         change = False
@@ -32,10 +32,12 @@ class TaskInfo:
             self.image_harmony_client = ImageHarmonyClient(self.pre_service_ip, self.pre_service_port)
     
     def set_cur_service(self, weight: str, connect_id: int):
+        # TODO 未来添加dnn half device等
         if weight:
             self.weight = weight
-            detector_manager = DetectorManager()
-            detector_manager.detector_info_map[self.weight].cnt += 1
+            yolov5_builder = YOLOv5Detector.YOLOv5Builder()
+            yolov5_builder.weight = weight
+            self.detector = yolov5_builder.build()
         if connect_id:
             self.connect_id = connect_id
             if self.image_harmony_client is not None:
@@ -49,6 +51,7 @@ class TaskInfo:
             assert self.image_harmony_client, 'Error: image_harmony_client not set.'
             assert self.connect_id,           'Error: connect_id not set.'
             assert self.weight,               'Error: weight not set.'
+            assert self.detector,             'Error: detector not set.'
         except Exception as e:
             print(e)
             return False, str(e)
@@ -61,40 +64,38 @@ class TaskInfo:
         # TODO 临时版本
         _thread.start_new_thread(self.detect_by_image_id, ())
 
-    def progress(self):
-        # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
-        # 延迟最低的方案，申请最新的图片，持续检测，根据图片ID查询结果
-        # 另一种方案不浪费性能，接收图片ID，根据图片ID去申请图片检测
-        detector_manager = DetectorManager()
-        assert self.weight in detector_manager.detector_info_map and detector_manager.detector_info_map[self.weight] is not None, 'yolov5 detector is not set\n'
-        assert self.image_harmony_client is not None, 'image harmony client is not set\n'
-        detector_info = detector_manager.detector_info_map[self.weight]
-        while not self.stop:
-            # TODO 优化：先获取图像id，判断是否重复，不重复再用id获取图像
-            image_id, img = self.image_harmony_client.get_latest_image()
-            if 0 == image_id:
-                continue
-            if not detector_info.detector.add_img(image_id, img):
-                continue
-            detector_info.detector.detect_by_uid(image_id)
-            result = detector_info.detector.get_result_by_uid(image_id)
-            if (result):
-                print(result)
+    # def progress(self):
+    #     # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
+    #     # 延迟最低的方案，申请最新的图片，持续检测，根据图片ID查询结果
+    #     # 另一种方案不浪费性能，接收图片ID，根据图片ID去申请图片检测
+    #     detector_manager = DetectorManager()
+    #     assert self.weight in detector_manager.detector_info_map and detector_manager.detector_info_map[self.weight] is not None, 'yolov5 detector is not set\n'
+    #     assert self.image_harmony_client is not None, 'image harmony client is not set\n'
+    #     detector_info = detector_manager.detector_info_map[self.weight]
+    #     while not self.stop:
+    #         # TODO 优化：先获取图像id，判断是否重复，不重复再用id获取图像
+    #         image_id, img = self.image_harmony_client.get_latest_image()
+    #         if 0 == image_id:
+    #             continue
+    #         if not detector_info.detector.add_img(image_id, img):
+    #             continue
+    #         detector_info.detector.detect_by_uid(image_id)
+    #         result = detector_info.detector.get_result_by_uid(image_id)
+    #         if (result):
+    #             print(result)
     
     def detect_by_image_id(self):
-        detector_manager = DetectorManager()
-        assert self.weight in detector_manager.detector_info_map and detector_manager.detector_info_map[self.weight] is not None, 'yolov5 detector is not set\n'
-        assert self.image_harmony_client is not None, 'image harmony client is not set\n'
-        detector_info = detector_manager.detector_info_map[self.weight]
+        assert self.detector, 'yolov5 detector is not set\n'
+        assert self.image_harmony_client, 'image harmony client is not set\n'
         while not self.stop:
             image_id_in_queue = self.image_id_queue.get()
             image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue)
             if 0 == image_id:
                 continue
-            if not detector_info.detector.add_img(image_id, image):
+            if not self.detector.add_img(image_id, image):
                 continue
-            detector_info.detector.detect_by_uid(image_id)
-            result = detector_info.detector.get_result_by_uid(image_id)
+            self.detector.detect_by_uid(image_id)
+            result = self.detector.get_result_by_uid(image_id)
             if (result):
                 print(result)
                                                                                                                                            
