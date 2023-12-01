@@ -13,10 +13,11 @@ class WeightInfo:
 class Config:
     def __init__(self):
         # service
-        self.service_name: str
-        self.service_port: str
+        self.service_name: str = ''
+        self.service_port: str = ''
         self.service_tags: List[str] = list()
         self.weights_map: Dict[str, WeightInfo] = dict()
+        self.weights_data_map: Dict[str, str] = dict()
 
         #consul
         self.consul_ip: str
@@ -49,6 +50,7 @@ class Config:
                 weight_info = WeightInfo()
                 weight_info.file = os.path.splitext(filename)[0]
                 data_path = weight_info_data['data_path']
+                self.weights_data_map[weight_info.file] = data_path
                 with open(data_path, 'r') as f_data:
                     data_data = yaml.safe_load(f_data)
                     weight_info.labels = list(data_data['names'].values())
