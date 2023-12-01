@@ -4,13 +4,12 @@ import cv2
 from yolov5_src.utils.general import non_max_suppression, scale_boxes, check_img_size
 from yolov5_src.utils.plots import Annotator, colors
 from yolov5_src.utils.augmentations import letterbox
-from yolov5_src.models.common import DetectMultiBackend
 from yolov5_src.utils.torch_utils import select_device
 from typing import Dict
 import queue
 import copy
 import threading
-from src.model_manager.model_manager import ModelInfo, ModelManager
+from src.model_manager.model_manager import ModelManager
 import warnings
 warnings.filterwarnings('always')
 
@@ -99,6 +98,8 @@ class YOLOv5Detector:
 
     def load_model(self) -> bool:
         is_load_success = self._model_info.start_using()
+        if is_load_success:
+            self._imgsz = check_img_size(self._imgsz, s=self._model_info._model.stride)  # check image size
         return is_load_success
 
     def check_uid_exist(self, uid) -> bool:
