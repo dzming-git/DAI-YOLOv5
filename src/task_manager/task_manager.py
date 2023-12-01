@@ -4,6 +4,7 @@ from queue import Queue
 from src.grpc.clients.image_harmony.image_harmony_client import ImageHarmonyClient
 import _thread
 from src.wrapper.yolov5_detector import YOLOv5Detector
+import traceback
 
 class TaskInfo:
     def __init__(self):
@@ -53,8 +54,8 @@ class TaskInfo:
             assert self.weight,               'Error: weight not set.'
             assert self.detector,             'Error: detector not set.'
         except Exception as e:
-            print(e)
-            return False, str(e)
+            error_info = traceback.format_exc()
+            return False, error_info
         return True, 'OK'
     
     def start(self):

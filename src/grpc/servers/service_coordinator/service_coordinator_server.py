@@ -1,6 +1,7 @@
 from concurrent import futures
 import time
 import grpc
+import traceback
 from generated.protos.service_coordinator import service_coordinator_pb2, service_coordinator_pb2_grpc
 from typing import Dict
 from src.task_manager.task_manager import TaskManager, TaskInfo
@@ -41,7 +42,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
 
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
 
         response = service_coordinator_pb2.InformPreviousServiceInfoResponse()
         response.response.code = response_code
@@ -93,7 +94,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                     task_manager.incomplete_tasks.pop(task_id)
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
 
         response = service_coordinator_pb2.InformPreviousServiceInfoResponse()
         response.response.code = response_code

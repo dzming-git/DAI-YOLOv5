@@ -3,9 +3,8 @@ from typing import Dict
 from src.config.config import Config
 from yolov5_src.models.common import DetectMultiBackend
 import threading
-import warnings
 import torch
-warnings.filterwarnings('always')
+import traceback
 
 # state说明
 LOADING_COMPLETED = 0
@@ -41,7 +40,7 @@ class ModelInfo:
                         weight_path = f'./weights/{self._weight}'
                         self._model = DetectMultiBackend(weights=weight_path, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
                     except Exception as e:
-                        warnings.warn(e, UserWarning)
+                        traceback.print_exc()
                         self.state = NOT_LOADED
                         return False
         self.state = LOADING_COMPLETED

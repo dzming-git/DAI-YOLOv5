@@ -1,6 +1,7 @@
 from generated.protos.target_detection import target_detection_pb2, target_detection_pb2_grpc
 from typing import Dict
 import time
+import traceback
 from src.task_manager.task_manager import TaskManager
 from src.model_manager.model_manager import ModelManager
 from src.model_manager import model_manager as mm
@@ -24,7 +25,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             labels = weight_info.labels
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
 
         response = target_detection_pb2.GetResultMappingTableResponse()
         response.response.code = response_code
@@ -54,7 +55,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
                 response_message += 'Model loading completed.\n'
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
         response = target_detection_pb2.LoadModelResponse()
         response.response.code = response_code
         response.response.message = response_message
@@ -82,7 +83,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
                 modelState = target_detection_pb2.ModelState.LoadingCompleted
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
 
         response = target_detection_pb2.CheckModelStateResponse()
         response.response.code = response_code
@@ -118,8 +119,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             results = detector.get_result_by_uid(image_id)
         except Exception as e:
             response_code = 400
-            response_message += str(e)
-            print(e)
+            response_message += traceback.format_exc()
 
         response = target_detection_pb2.GetResultIndexByImageIdResponse()
         response.response.code = response_code
@@ -150,7 +150,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             # TODO results为None时会出bug
         except Exception as e:
             response_code = 400
-            response_message += str(e)
+            response_message += traceback.format_exc()
 
         response = target_detection_pb2.GetLatestResultIndexResponse()
         response.response.code = response_code
