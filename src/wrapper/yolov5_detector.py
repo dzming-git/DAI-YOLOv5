@@ -4,11 +4,11 @@ import cv2
 from yolov5_src.utils.general import non_max_suppression, scale_boxes, check_img_size
 from yolov5_src.utils.plots import Annotator, colors
 from yolov5_src.utils.augmentations import letterbox
-from yolov5_src.utils.torch_utils import select_device
 from typing import Dict
 import queue
 import copy
 import threading
+import traceback
 from src.model_manager.model_manager import ModelManager
 import warnings
 warnings.filterwarnings('always')
@@ -55,6 +55,12 @@ class YOLOv5Detector:
                 if self.device != 'cpu':
                     warnings.warn("cuda is not available", UserWarning)
                 self.device = 'cpu'
+            # self.device 字符串转torch.device
+            try:
+                self.device = torch.device(self.device)
+            except Exception as e:
+                traceback.print_exc()
+                self.device = torch.device('cpu')
             return YOLOv5Detector(self)
 
     class ImgInfo:
@@ -69,7 +75,7 @@ class YOLOv5Detector:
 
     def __init__(self, builder:YOLOv5Builder):
         self._weight = builder.weight
-        self._device = select_device(builder.device)
+        self._device = builder.device
         self._imgsz = builder.imgsz
         self._conf_thres = builder.conf_thres
         self._iou_thres = builder.iou_thres
