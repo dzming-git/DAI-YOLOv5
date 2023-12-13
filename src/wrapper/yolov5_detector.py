@@ -209,6 +209,8 @@ class YOLOv5Detector:
             return False
         self._img_infos[uid].step = ADD_IMAGE_START
         self._img_infos[uid].img_shape = img.shape
+        if self._save_img_to_cache:
+            self._img_infos[uid].img = copy.deepcopy(img)
         # 处理图片
         img = letterbox(img, self._imgsz, stride=self._model_info._model.stride)[0]
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
