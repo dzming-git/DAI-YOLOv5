@@ -16,6 +16,7 @@ class TaskInfo:
         self.image_harmony_client: ImageHarmonyClient = None
         self.connect_id: int = 0  # 与image harmony连接的id，根据该id获取图像
         self.weight: str = ''
+        self.device: str = ''
         self.image_id_queue: Queue[int] = Queue()
         self.detector: YOLOv5Detector = None
     
@@ -32,12 +33,13 @@ class TaskInfo:
         if change:
             self.image_harmony_client = ImageHarmonyClient(self.pre_service_ip, self.pre_service_port)
     
-    def set_cur_service(self, weight: str, connect_id: int):
+    def set_cur_service(self, weight: str, device: str, connect_id: int):
         # TODO 未来添加dnn half device等
-        if weight:
+        if weight and device:
             self.weight = weight
             yolov5_builder = YOLOv5Detector.YOLOv5Builder()
             yolov5_builder.weight = weight
+            yolov5_builder.device = device
             self.detector = yolov5_builder.build()
         if connect_id:
             self.connect_id = connect_id
