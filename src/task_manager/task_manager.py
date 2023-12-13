@@ -14,7 +14,8 @@ class TaskInfo:
         self.pre_service_ip: str = ''
         self.pre_service_port: str = ''
         self.image_harmony_client: ImageHarmonyClient = None
-        self.connect_id: int = 0  # 与image harmony连接的id，根据该id获取图像
+        self.loader_args_hash: int = 0  # image harmony中加载器的hash值
+        # self.connect_id: int = 0  # 与image harmony连接的id，根据该id获取图像
         self.weight: str = ''
         self.device: str = ''
         self.image_id_queue: Queue[int] = Queue()
@@ -33,7 +34,7 @@ class TaskInfo:
         if change:
             self.image_harmony_client = ImageHarmonyClient(self.pre_service_ip, self.pre_service_port)
     
-    def set_cur_service(self, weight: str, device: str, connect_id: int):
+    def set_cur_service(self, weight: str, device: str, loader_args_hash: int):
         # TODO 未来添加dnn half device等
         if weight and device:
             self.weight = weight
@@ -41,10 +42,8 @@ class TaskInfo:
             yolov5_builder.weight = weight
             yolov5_builder.device = device
             self.detector = yolov5_builder.build()
-        if connect_id:
-            self.connect_id = connect_id
-            if self.image_harmony_client is not None:
-                self.image_harmony_client.set_connect_id(self.connect_id)
+        if loader_args_hash:
+            self.loader_args_hash = loader_args_hash
     
     def check(self) -> Tuple[bool, str]:
         try:
@@ -52,7 +51,7 @@ class TaskInfo:
             assert self.pre_service_ip,       'Error: pre_service_ip not set.'
             assert self.pre_service_port,     'Error: pre_service_port not set.'
             assert self.image_harmony_client, 'Error: image_harmony_client not set.'
-            assert self.connect_id,           'Error: connect_id not set.'
+            assert self.loader_args_hash,     'Error: loader_args_hash not set.'
             assert self.weight,               'Error: weight not set.'
             assert self.detector,             'Error: detector not set.'
         except Exception as e:
@@ -61,7 +60,7 @@ class TaskInfo:
         return True, 'OK'
     
     def start(self):
-        self.image_harmony_client.set_connect_id(self.connect_id)
+        self.image_harmony_client.set_loader_args_hash(self.loader_args_hash)
         self.stop = False
         # _thread.start_new_thread(self.progress, ())
         # TODO 临时版本

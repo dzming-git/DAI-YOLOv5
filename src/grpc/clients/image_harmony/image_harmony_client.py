@@ -20,7 +20,14 @@ class ImageHarmonyClient:
             
             response = unregister_image_harmony_service_response.response
             print(f'{response.code}: {response.message}')
-
+    
+    def set_loader_args_hash(self, loader_args_hash: int):
+        register_image_harmony_service_request = image_harmony_pb2.RegisterImageTransServiceRequest()
+        register_image_harmony_service_request.loaderArgsHash = loader_args_hash
+        register_image_harmony_service_response = self.client.registerImageTransService(register_image_harmony_service_request)
+        self.connect_id = register_image_harmony_service_response.connectId
+        response = register_image_harmony_service_response.response
+        print(f'{response.code}: {response.message}')
     
     def set_connect_id(self, connect_id: int):
         self.connect_id = connect_id

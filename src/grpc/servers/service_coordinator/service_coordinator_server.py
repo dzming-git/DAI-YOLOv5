@@ -75,13 +75,13 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                 task_info = task_manager.incomplete_tasks[task_id]
 
             weight = ''
-            connect_id = 0
+            loader_args_hash = 0
             device = 'cpu'  # 默认cpu
             for arg in request.args:
                 if 'Weight' == arg.key:
                     weight = arg.value
-                if 'ConnectID' == arg.key:
-                    connect_id = int(arg.value)
+                if 'LoaderArgsHash' == arg.key:
+                    loader_args_hash = int(arg.value)
                 if 'Device' == arg.key:
                     device = arg.value
             # assert weight, 'Error: Missing parameter \'Weight\'\n'
@@ -89,7 +89,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
             task_info.set_cur_service(
                 weight=weight,
                 device=device,
-                connect_id=connect_id
+                loader_args_hash=loader_args_hash
             )
             if task_id in task_manager.incomplete_tasks:
                 ok, msg = task_info.check()
