@@ -201,8 +201,6 @@ class YOLOv5Detector:
         return img
 
     def add_img(self, uid, img) -> bool:
-        cv2.imshow('add', img)
-        cv2.waitKey(1)
         if not self.check_uid_exist(uid):
             self.add_uid(uid)
         elif self._img_infos[uid].step != ADD_UID_COMPLETE:
@@ -222,7 +220,7 @@ class YOLOv5Detector:
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
-        self._img_infos[uid].img_processed = copy.deepcopy(img)
+        self._img_infos[uid].img_processed = img
         self.latest_add_uid = uid
         self._img_infos[uid].step = ADD_IMAGE_COMPLETE
         return True
