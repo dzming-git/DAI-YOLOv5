@@ -47,19 +47,19 @@ class ImageHarmonyClient:
     def get_image_by_image_id(self, image_id: int) -> Tuple[int, np.ndarray]:
         get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
         get_image_by_image_id_request.connectId = self.connect_id
-        get_image_by_image_id_request.imageId = image_id
+        get_image_by_image_id_request.imageRequest.imageId = image_id
         # TODO: 这些参数暂时固定
-        get_image_by_image_id_request.format = '.jpg'
-        get_image_by_image_id_request.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
-        get_image_by_image_id_request.expectedW = 640
-        get_image_by_image_id_request.expectedH = 640
+        get_image_by_image_id_request.imageRequest.format = '.jpg'
+        get_image_by_image_id_request.imageRequest.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
+        get_image_by_image_id_request.imageRequest.expectedW = 640
+        get_image_by_image_id_request.imageRequest.expectedH = 640
         get_image_by_image_id_response = self.client.getImageByImageId(get_image_by_image_id_request)
         response = get_image_by_image_id_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
             return 0, np.empty((0), dtype=np.uint8)
-        image_id = get_image_by_image_id_response.imageId
-        buf = get_image_by_image_id_response.buf
+        image_id = get_image_by_image_id_response.imageResponse.imageId
+        buf = get_image_by_image_id_response.imageResponse.buf
         nparr = np.frombuffer(buf, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return image_id, image
@@ -67,19 +67,19 @@ class ImageHarmonyClient:
     def get_latest_image(self) -> Tuple[int, np.ndarray]:
         get_next_image_by_image_id_request = image_harmony_pb2.GetNextImageByImageIdRequest()
         get_next_image_by_image_id_request.connectId = self.connect_id
-        get_next_image_by_image_id_request.imageId = 0
+        get_next_image_by_image_id_request.imageRequest.imageId = 0
         # TODO: 这些参数暂时固定
-        get_next_image_by_image_id_request.format = '.jpg'
-        get_next_image_by_image_id_request.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
-        get_next_image_by_image_id_request.expectedW = 640
-        get_next_image_by_image_id_request.expectedH = 640
+        get_next_image_by_image_id_request.imageRequest.format = '.jpg'
+        get_next_image_by_image_id_request.imageRequest.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
+        get_next_image_by_image_id_request.imageRequest.expectedW = 640
+        get_next_image_by_image_id_request.imageRequest.expectedH = 640
         get_image_by_image_id_response = self.client.getNextImageByImageId(get_next_image_by_image_id_request)
         response = get_image_by_image_id_response.response
         if 200 != response.code:
             print(f'{response.code}: {response.message}')
             return 0, np.empty((0), dtype=np.uint8)
-        image_id = get_image_by_image_id_response.imageId
-        buf = get_image_by_image_id_response.buf
+        image_id = get_image_by_image_id_response.imageResponse.imageId
+        buf = get_image_by_image_id_response.imageResponse.buf
         nparr = np.frombuffer(buf, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return image_id, image
