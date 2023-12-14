@@ -92,6 +92,8 @@ class TaskInfo:
         while not self.stop:
             image_id_in_queue = self.image_id_queue.get()
             width, height = self.image_harmony_client.get_image_size_by_image_id(image_id_in_queue)
+            if 0 == width or 0 == height:
+                continue
             new_unpad_width, new_unpad_height, top, bottom, left, right = self.detector.get_letterbox_size(width, height)
             image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue, new_unpad_width, new_unpad_height)
             if 0 == image_id:
