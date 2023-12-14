@@ -44,15 +44,15 @@ class ImageHarmonyClient:
         response = register_image_harmony_service_response.response
         print(f'{response.code}: {response.message}')
     
-    def get_image_by_image_id(self, image_id: int) -> Tuple[int, np.ndarray]:
+    def get_image_by_image_id(self, image_id: int, width: int, height: int) -> Tuple[int, np.ndarray]:
         get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
         get_image_by_image_id_request.connectId = self.connect_id
         get_image_by_image_id_request.imageRequest.imageId = image_id
         # TODO: 这些参数暂时固定
         get_image_by_image_id_request.imageRequest.format = '.jpg'
         get_image_by_image_id_request.imageRequest.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
-        get_image_by_image_id_request.imageRequest.expectedW = 640
-        get_image_by_image_id_request.imageRequest.expectedH = 640
+        get_image_by_image_id_request.imageRequest.expectedW = width
+        get_image_by_image_id_request.imageRequest.expectedH = height
         get_image_by_image_id_response = self.client.getImageByImageId(get_image_by_image_id_request)
         response = get_image_by_image_id_response.response
         if 200 != response.code:
@@ -79,15 +79,15 @@ class ImageHarmonyClient:
         height = get_image_by_image_id_response.imageResponse.height
         return width, height
 
-    def get_latest_image(self) -> Tuple[int, np.ndarray]:
+    def get_latest_image(self, width: int, height: int) -> Tuple[int, np.ndarray]:
         get_next_image_by_image_id_request = image_harmony_pb2.GetNextImageByImageIdRequest()
         get_next_image_by_image_id_request.connectId = self.connect_id
         get_next_image_by_image_id_request.imageRequest.imageId = 0
         # TODO: 这些参数暂时固定
         get_next_image_by_image_id_request.imageRequest.format = '.jpg'
         get_next_image_by_image_id_request.imageRequest.params.extend([cv2.IMWRITE_JPEG_QUALITY, 80])
-        get_next_image_by_image_id_request.imageRequest.expectedW = 640
-        get_next_image_by_image_id_request.imageRequest.expectedH = 640
+        get_next_image_by_image_id_request.imageRequest.expectedW = width
+        get_next_image_by_image_id_request.imageRequest.expectedH = height
         get_image_by_image_id_response = self.client.getNextImageByImageId(get_next_image_by_image_id_request)
         response = get_image_by_image_id_response.response
         if 200 != response.code:

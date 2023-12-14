@@ -91,7 +91,9 @@ class TaskInfo:
         assert self.image_harmony_client, 'image harmony client is not set\n'
         while not self.stop:
             image_id_in_queue = self.image_id_queue.get()
-            image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue)
+            width, height = self.image_harmony_client.get_image_size_by_image_id(image_id_in_queue)
+            new_unpad_width, new_unpad_height, top, bottom, left, right = self.detector.get_letterbox_size(width, height)
+            image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue, new_unpad_width, new_unpad_height)
             if 0 == image_id:
                 continue
             if not self.detector.add_img(image_id, image):
