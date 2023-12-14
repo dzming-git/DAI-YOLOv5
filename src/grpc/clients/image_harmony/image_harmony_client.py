@@ -59,10 +59,25 @@ class ImageHarmonyClient:
             print(f'{response.code}: {response.message}')
             return 0, np.empty((0), dtype=np.uint8)
         image_id = get_image_by_image_id_response.imageResponse.imageId
-        buf = get_image_by_image_id_response.imageResponse.buf
-        nparr = np.frombuffer(buf, np.uint8)
+        buffer = get_image_by_image_id_response.imageResponse.buffer
+        nparr = np.frombuffer(buffer, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return image_id, image
+    
+    def get_image_size_by_image_id(self, image_id: int) -> Tuple[int, int]:
+        get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
+        get_image_by_image_id_request.connectId = self.connect_id
+        get_image_by_image_id_request.imageRequest.imageId = image_id
+        get_image_by_image_id_request.imageRequest.noImageBuffer = True
+        get_image_by_image_id_response = self.client.getImageByImageId(get_image_by_image_id_request)
+        response = get_image_by_image_id_response.response
+        if 200 != response.code:
+            print(f'{response.code}: {response.message}')
+            return 0, np.empty((0), dtype=np.uint8)
+        image_id = get_image_by_image_id_response.imageResponse.imageId
+        width = get_image_by_image_id_response.imageResponse.width
+        height = get_image_by_image_id_response.imageResponse.height
+        return width, height
 
     def get_latest_image(self) -> Tuple[int, np.ndarray]:
         get_next_image_by_image_id_request = image_harmony_pb2.GetNextImageByImageIdRequest()
@@ -79,7 +94,7 @@ class ImageHarmonyClient:
             print(f'{response.code}: {response.message}')
             return 0, np.empty((0), dtype=np.uint8)
         image_id = get_image_by_image_id_response.imageResponse.imageId
-        buf = get_image_by_image_id_response.imageResponse.buf
-        nparr = np.frombuffer(buf, np.uint8)
+        buffer = get_image_by_image_id_response.imageResponse.buffer
+        nparr = np.frombuffer(buffer, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return image_id, image
