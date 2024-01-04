@@ -11,6 +11,9 @@
             "request": "launch",
             "program": "app.py",
             "console": "integratedTerminal",
+            "env": {
+                "DISPLAY": "192.168.1.185:0.0"
+            },
             "preLaunchTask": "proto generate",
             "justMyCode": true
         }
