@@ -24,6 +24,7 @@ class ImageHarmonyClient:
     def set_loader_args_hash(self, loader_args_hash: int):
         register_image_harmony_service_request = image_harmony_pb2.RegisterImageTransServiceRequest()
         register_image_harmony_service_request.loaderArgsHash = loader_args_hash
+        register_image_harmony_service_request.isUnique = False
         register_image_harmony_service_response = self.client.registerImageTransService(register_image_harmony_service_request)
         self.connect_id = register_image_harmony_service_response.connectId
         response = register_image_harmony_service_response.response
