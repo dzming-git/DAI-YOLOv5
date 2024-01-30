@@ -12,37 +12,5 @@
                 "cwd": "${workspaceFolder}"
             }
         },
-        {
-            "label": "docker-run-windows",
-            "type": "shell",
-            "command":[
-                "docker", "run", 
-                "-it",
-                "-v", "D:/weights:/workspace/weights",
-                "-p", "0.0.0.0:8001:5000",
-                "yolov5", "/bin/bash"
-            ],
-            "group":{
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "docker-run-linux",
-            "type": "shell",
-            "command":[
-                "docker", "run", 
-                "-it",
-                "-v", "~/DAI/weights:/workspace/weights",
-                "-v", "~/DAI/pkgs:/workspace/pkgs",
-                "--gpus", "all",
-                "-p", "0.0.0.0:8001:5000",
-                "yolov5", "/bin/bash"
-            ],
-            "group":{
-                "kind": "build",
-                "isDefault": true
-            }
-        }
     ]
 }
