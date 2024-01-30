@@ -33,10 +33,15 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                 task_info.id = request.taskId
             assert request.preServiceName in VALID_PRE_SERVICE, 'invalid pre service\n'
             
+            args = {}
+            for arg in request.args:
+                args[arg.key] = arg.value
+                
             task_info.set_pre_service(
                 pre_service_name=request.preServiceName,
                 pre_service_ip=request.preServiceIp,
-                pre_service_port=request.preServicePort)
+                pre_service_port=request.preServicePort,
+                args=args)
             if task_id in task_manager.incomplete_tasks:
                 ok, msg = task_info.check()
                 if ok:
@@ -78,23 +83,11 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
                 # 修改已有任务的参数
                 task_info = task_manager.incomplete_tasks[task_id]
 
-            weight = ''
-            loader_args_hash = 0
-            device = 'cpu'  # 默认cpu
+            args = {}
             for arg in request.args:
-                if 'Weight' == arg.key:
-                    weight = arg.value
-                if 'LoaderArgsHash' == arg.key:
-                    loader_args_hash = int(arg.value)
-                if 'Device' == arg.key:
-                    device = arg.value
-            # assert weight, 'Error: Missing parameter \'Weight\'\n'
-            # assert connect_id, 'Error: Missing parameter \'ConnectID\'\n'
-            task_info.set_cur_service(
-                weight=weight,
-                device=device,
-                loader_args_hash=loader_args_hash
-            )
+                args[arg.key] = arg.value
+            task_info.set_cur_service(args)
+            
             if task_id in task_manager.incomplete_tasks:
                 ok, msg = task_info.check()
                 if ok:
