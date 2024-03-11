@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.join('yolov5_src'))
+
 import numpy as np
 import torch
 import cv2
