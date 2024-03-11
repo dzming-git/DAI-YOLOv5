@@ -1,13 +1,13 @@
 import sys
 import os
-sys.path.insert(0, os.path.join('yolov5_src'))
+sys.path.insert(0, os.path.join('yolov5'))
 
 import numpy as np
 import torch
 import cv2
-from yolov5_src.utils.general import non_max_suppression, scale_boxes, check_img_size
-from yolov5_src.utils.plots import Annotator, colors
-from yolov5_src.utils.augmentations import letterbox
+from yolov5.utils.general import non_max_suppression, scale_boxes, check_img_size
+from yolov5.utils.plots import Annotator, colors
+from yolov5.utils.augmentations import letterbox
 from typing import Dict
 import queue
 import copy

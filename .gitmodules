@@ -4,6 +4,9 @@
 [submodule "src/consul"]
 	path = src/consul
 	url = https://github.com/dzming-git/DAI-consul-python.git
-[submodule "yolov5_src"]
-	path = yolov5_src
+[submodule "yolov5"]
+	path = yolov5
+	url = https://github.com/ultralytics/yolov5.git
+[submodule "yolov5"]
+	path = yolov5
 	url = https://github.com/ultralytics/yolov5.git

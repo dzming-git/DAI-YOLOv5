@@ -1,1 +1,1 @@
-data_path: yolov5_src/data/coco128.yaml
+data_path: yolov5/data/coco128.yaml

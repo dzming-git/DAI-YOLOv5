@@ -1,7 +1,7 @@
 from src.utils import singleton
 from typing import Dict
 from src.config.config import Config
-from yolov5_src.models.common import DetectMultiBackend
+from yolov5.models.common import DetectMultiBackend
 import threading
 import torch
 import traceback

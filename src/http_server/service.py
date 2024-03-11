@@ -1,5 +1,5 @@
 import warnings
-from yolov5_src import YOLOV5Impl
+from yolov5 import YOLOV5Impl
 from flask import Flask, make_response, request, render_template
 from werkzeug.serving import make_server, BaseWSGIServer
 import cv2

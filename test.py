@@ -2,7 +2,7 @@ import cv2
 # import sys
 # import os
 
-# project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'yolov5_src'))
+# project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'yolov5'))
 # sys.path.insert(0, project_path)
 from src.wrapper.yolov5_detector import YOLOv5Detector
 
@@ -11,7 +11,7 @@ builder.device = 'cuda:0'
 builder.weight = 'yolov5s.pt'
 detector = builder.build()
 
-image = cv2.imread('yolov5_src/data/images/bus.jpg')
+image = cv2.imread('yolov5/data/images/bus.jpg')
 
 detector.load_model()
 detector.add_uid(1)
