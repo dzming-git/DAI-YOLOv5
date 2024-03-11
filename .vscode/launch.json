@@ -6,10 +6,23 @@
     "configurations": [
         {
             "name": "app",
-            "type": "python",
+            "type": "debugpy",
             "python": "/bin/python3",
             "request": "launch",
             "program": "app.py",
+            "console": "integratedTerminal",
+            "env": {
+                "DISPLAY": "192.168.1.185:0.0"
+            },
+            "preLaunchTask": "proto generate",
+            "justMyCode": true
+        },
+        {
+            "name": "test",
+            "type": "debugpy",
+            "python": "/bin/python3",
+            "request": "launch",
+            "program": "test.py",
             "console": "integratedTerminal",
             "env": {
                 "DISPLAY": "192.168.1.185:0.0"
