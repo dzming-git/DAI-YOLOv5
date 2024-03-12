@@ -1,13 +1,13 @@
-import sys
-import os
-sys.path.insert(0, os.path.join('yolov5'))
+SUBMODULE_DIR = '/workspace/yolov5'
 
 import numpy as np
 import torch
 import cv2
-from yolov5.utils.general import non_max_suppression, scale_boxes, check_img_size
-from yolov5.utils.plots import Annotator, colors
-from yolov5.utils.augmentations import letterbox
+from src.utils import class_temporary_change_dir, temporary_change_dir
+with temporary_change_dir(SUBMODULE_DIR):
+    from yolov5.utils.general import non_max_suppression, scale_boxes, check_img_size
+    from yolov5.utils.plots import Annotator, colors
+    from yolov5.utils.augmentations import letterbox
 from typing import Dict
 import queue
 import copy
@@ -31,6 +31,7 @@ ADD_UID_COMPLETE = 4
 
 model_manager = ModelManager()
 
+@class_temporary_change_dir(SUBMODULE_DIR)
 class YOLOv5Detector:
     class YOLOv5Builder:
         def __init__(self):
@@ -149,9 +150,9 @@ class YOLOv5Detector:
         with self._img_infos[uid].lock:
             pred = self._model_info._model(self._img_infos[uid].img_processed)[0]
         pred = non_max_suppression(prediction=pred,
-                                          conf_thres=self._conf_thres,
-                                          iou_thres=self._iou_thres,
-                                          max_det=self._max_det)[0]
+                                        conf_thres=self._conf_thres,
+                                        iou_thres=self._iou_thres,
+                                        max_det=self._max_det)[0]
         with self._img_infos[uid].lock:
             if len(pred):
                 pred[:, :4] = scale_boxes(self._img_infos[uid].img_processed.shape[2:], pred[:, :4], self._img_infos[uid].img_shape).round()
