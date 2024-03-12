@@ -18,6 +18,7 @@ class Config:
         self.service_tags: List[str] = list()
         self.weights_map: Dict[str, WeightInfo] = dict()
         self.weights_data_map: Dict[str, str] = dict()
+        self.weights_folder: str = ''
 
         #consul
         self.consul_ip: str
@@ -55,6 +56,8 @@ class Config:
                     data_data = yaml.safe_load(f_data)
                     weight_info.labels = list(data_data['names'].values())
                 self.weights_map[weight_info.file] = weight_info
+        
+        self.weights_folder = service_data.get('weights_folder', '')
         
         consul_data = config_data.get('consul', {})
         self.consul_ip = consul_data.get('ip', '')

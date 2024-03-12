@@ -37,7 +37,7 @@ class ModelInfo:
             with self._model_load_lock:
                 if self._model is None:
                     try:
-                        weight_path = f'./weights/{self._weight}'
+                        weight_path = f'{config.weights_folder}/{self._weight}'
                         self._model = DetectMultiBackend(weights=weight_path, device=self._device, dnn=self._dnn, data=self._data, fp16=self._half)
                     except Exception as e:
                         traceback.print_exc()

@@ -4,7 +4,8 @@ service:
   tags: 
     - interface:gRPC
     - algorithm:YOLOv5
-  weight_info_folder: ./weights_info
+  weight_info_folder: /workspace/weights_info
+  weights_folder: /workspace/weights
 
 consul:
   ip: 10.10.10.2
