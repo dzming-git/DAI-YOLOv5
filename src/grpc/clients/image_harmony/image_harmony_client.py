@@ -12,23 +12,20 @@ class ImageHarmonyClient:
         self.client = image_harmony_pb2_grpc.CommunicateStub(channel=self.conn)
         self.connect_id: int = 0
     
-    def __del__(self):
+    def connect_image_loader(self, loader_args_hash: int):
+        request = image_harmony_pb2.RegisterImageTransServiceRequest()
+        request.loaderArgsHash = loader_args_hash
+        request.isUnique = False
+        response = self.client.registerImageTransService(request)
+        self.connect_id = response.connectId
+        print(f'{response.response.code}: {response.response.message}')
+
+    def disconnect_image_loader(self):
         if 0 != self.connect_id:
-            unregister_image_harmony_service_request = image_harmony_pb2.UnregisterImageTransServiceRequest()
-            unregister_image_harmony_service_request.connectId = self.connect_id
-            unregister_image_harmony_service_response = self.client.unregisterImageTransService(unregister_image_harmony_service_request)
-            
-            response = unregister_image_harmony_service_response.response
-            print(f'{response.code}: {response.message}')
-    
-    def set_loader_args_hash(self, loader_args_hash: int):
-        register_image_harmony_service_request = image_harmony_pb2.RegisterImageTransServiceRequest()
-        register_image_harmony_service_request.loaderArgsHash = loader_args_hash
-        register_image_harmony_service_request.isUnique = False
-        register_image_harmony_service_response = self.client.registerImageTransService(register_image_harmony_service_request)
-        self.connect_id = register_image_harmony_service_response.connectId
-        response = register_image_harmony_service_response.response
-        print(f'{response.code}: {response.message}')
+            request = image_harmony_pb2.UnregisterImageTransServiceRequest()
+            request.connectId = self.connect_id
+            response = self.client.unregisterImageTransService(request)
+            print(f'{response.response.code}: {response.response.message}')
     
     def set_connect_id(self, connect_id: int):
         self.connect_id = connect_id

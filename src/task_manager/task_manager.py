@@ -1,25 +1,25 @@
 from src.utils import singleton
 from typing import Dict, Tuple, List
-from queue import Queue
+import queue
 from src.grpc.clients.image_harmony.image_harmony_client import ImageHarmonyClient
-import _thread
 from src.wrapper.yolov5_detector import YOLOv5Detector
 import traceback
+import threading
 
 class TaskInfo:
-    def __init__(self):
-        self.id: int = 0
-        self.stop: bool = True
+    def __init__(self, task_id: int):
+        self.id: int = task_id
         
         self.image_harmony_address: List[str, str] = []
         self.image_harmony_client: ImageHarmonyClient = None
         
         self.loader_args_hash: int = 0  # image harmony中加载器的hash值
-        # self.connect_id: int = 0  # 与image harmony连接的id，根据该id获取图像
         self.weight: str = ''
         self.device: str = ''
-        self.image_id_queue: Queue[int] = Queue()
+        self.image_id_queue: queue.Queue[int] = queue.Queue()
         self.detector: YOLOv5Detector = None
+        self.stop_event = threading.Event()
+        self.track_thread = None  # 用于跟踪线程的引用
     
     def set_pre_service(self, pre_service_name: str, pre_service_ip: str, pre_service_port: str, args: Dict[str, str] = {}):
         if 'image harmony' == pre_service_name:
@@ -42,22 +42,21 @@ class TaskInfo:
             assert self.loader_args_hash,      'Error: loader_args_hash not set.'
             assert self.weight,                'Error: weight not set.'
             assert self.device,                'Error: device not set.'
-            # assert self.detector,              'Error: detector not set.'
         except Exception as e:
             error_info = traceback.format_exc()
             return False, error_info
         return True, 'OK'
     
     def start(self):
-        self.image_harmony_client.set_loader_args_hash(self.loader_args_hash)
+        self.image_harmony_client.connect_image_loader(self.loader_args_hash)
         yolov5_builder = YOLOv5Detector.YOLOv5Builder()
         yolov5_builder.weight = self.weight
         yolov5_builder.device = self.device
         self.detector = yolov5_builder.build()
-        self.stop = False
-        # _thread.start_new_thread(self.progress, ())
-        # TODO 临时版本
-        _thread.start_new_thread(self.detect_by_image_id, ())
+        self.detector.load_model()
+        self.stop_event.clear()  # 确保开始时事件是清除状态
+        self.track_thread = threading.Thread(target=self.detect_by_image_id)
+        self.track_thread.start()
 
     # def progress(self):
     #     # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
@@ -82,8 +81,14 @@ class TaskInfo:
     def detect_by_image_id(self):
         assert self.detector, 'yolov5 detector is not set\n'
         assert self.image_harmony_client, 'image harmony client is not set\n'
-        while not self.stop:
-            image_id_in_queue = self.image_id_queue.get()
+        while not self.stop_event.is_set():  # 使用事件来检查停止条件
+            # image_id_in_queue = self.image_id_queue.get()
+            try:
+            # 尝试从队列中获取image_id，设置超时时间为1秒
+                image_id_in_queue = self.image_id_queue.get(timeout=1)
+            except queue.Empty:
+                # 如果在超时时间内没有获取到新的image_id，则继续循环，此时可以检查停止事件
+                continue
             width, height = self.image_harmony_client.get_image_size_by_image_id(image_id_in_queue)
             if 0 == width or 0 == height:
                 continue
@@ -97,18 +102,24 @@ class TaskInfo:
             result = self.detector.get_result_by_uid(image_id)
             if (result):
                 print(result)
-                                                                                                                                           
+    
+    def stop(self):
+        self.stop_event.set()  # 设置事件，通知线程停止
+        if self.track_thread:
+            self.track_thread.join()  # 等待线程结束
+        self.image_harmony_client.disconnect_image_loader()
+        if self.detector:
+            del self.detector  # 释放资源
+        self.detector = None                                                                                                                                    
+
 @singleton
 class TaskManager:
     def __init__(self):
-        self.tasks_queue: Queue[TaskInfo] = Queue(maxsize=20)
-        self.incomplete_tasks: Dict[int, TaskInfo] = {}
         self.tasks: Dict[int, TaskInfo] = {}
-
-    def listening(self):
-        def wait_for_task():
-            while True:
-                task = self.tasks_queue.get()
-                task.start()
-
-        _thread.start_new_thread(wait_for_task, ())
+        self.__lock = threading.Lock()
+    
+    def stop_task(self, task_id: int):
+        with self.__lock:
+            if task_id in self.tasks:
+                self.tasks[task_id].stop()
+                del self.tasks[task_id]
