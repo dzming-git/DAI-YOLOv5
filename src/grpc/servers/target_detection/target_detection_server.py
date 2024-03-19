@@ -100,7 +100,7 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             wait = request.wait
             assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             detector = task_manager.tasks[task_id].detector
-            image_id_exist = detector.check_uid_exist(image_id)
+            image_id_exist = detector.check_image_id_exist(image_id)
             if not image_id_exist and wait:
                 task_manager.tasks[task_id].image_id_queue.put(image_id)
             # 设置超时时间为 1 秒
@@ -108,14 +108,14 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             start_time = time.time()
 
             # 等待检测完成
-            while detector.get_statue(image_id) != 0:
+            while detector.get_status(image_id) != 0:
                 # 检查是否超过了超时时间
                 if time.time() - start_time > timeout:
                     raise TimeoutError("等待超时")
                 
                 time.sleep(0.01)
             
-            results = detector.get_result_by_uid(image_id)
+            results = detector.get_result_by_image_id(image_id)
         except Exception as e:
             response_code = 400
             response_message += traceback.format_exc()
@@ -144,8 +144,8 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             task_id = request.taskId
             assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
             detector = task_manager.tasks[task_id].detector
-            image_id = detector.latest_detection_completed_uid
-            results = detector.get_result_by_uid(image_id)
+            image_id = detector.latest_detection_completed_image_id
+            results = detector.get_result_by_image_id(image_id)
             # TODO results为None时会出bug
         except Exception as e:
             response_code = 400

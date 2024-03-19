@@ -78,8 +78,8 @@ class TaskInfo:
     #             continue
     #         if not detector_info.detector.add_img(image_id, img):
     #             continue
-    #         detector_info.detector.detect_by_uid(image_id)
-    #         result = detector_info.detector.get_result_by_uid(image_id)
+    #         detector_info.detector.detect_by_image_id(image_id)
+    #         result = detector_info.detector.get_result_by_image_id(image_id)
     #         if (result):
     #             print(result)
     
@@ -101,12 +101,9 @@ class TaskInfo:
             image_id, image = self.image_harmony_client.get_image_by_image_id(image_id_in_queue, new_unpad_width, new_unpad_height)
             if 0 == image_id:
                 continue
-            if not self.detector.add_img(image_id, image):
+            if not self.detector.add_image(image_id, image):
                 continue
-            self.detector.detect_by_uid(image_id)
-            result = self.detector.get_result_by_uid(image_id)
-            if (result):
-                print(result)
+            self.detector.detect_by_image_id(image_id)
     
     def stop(self):
         self.stop_event.set()  # 设置事件，通知线程停止

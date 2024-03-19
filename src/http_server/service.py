@@ -1,65 +1,53 @@
 import warnings
-from yolov5 import YOLOV5Impl
+from src.wrapper.yolov5_detector import YOLOv5Detector
 from flask import Flask, make_response, request, render_template
 from werkzeug.serving import make_server, BaseWSGIServer
 import cv2
 import hashlib
 
 class YOLOv5Service:
-    def set_yolov5_impl(self, yolov5_impl:YOLOV5Impl) -> bool:
-        pass
-    
-    def creat_server(self) -> BaseWSGIServer:
-        pass
-    
-    def start_server(self):
-        pass
-
-class YOLOv5Service:
     # 单例模式+建造者模式
     class SingletonBuilder:
-        _instance = None
+        __instance = None
 
         @staticmethod
-        def get_instance() -> YOLOv5Service:
-            if YOLOv5Service.SingletonBuilder._instance is None:
+        def get_instance() -> 'YOLOv5Service':
+            if YOLOv5Service.SingletonBuilder.__instance is None:
                 warnings.warn('yolov5 service unbuilt!')
-            return YOLOv5Service.SingletonBuilder._instance
+            return YOLOv5Service.SingletonBuilder.__instance
         
         def __init__(self):
-            self._host = "127.0.0.1"
-            self._port = "5000"
+            self.__host = "127.0.0.1"
+            self.__port = "5000"
                 
         def set_host(self, host:str) -> None:
-            self._host = host
+            self.__host = host
         
         def get_host(self) ->str:
-            return self._host
+            return self.__host
 
         def set_port(self, port:str) -> None:
-            self._port = port
+            self.__port = port
         
         def get_port(self) -> str:
-            return self._port
+            return self.__port
         
         def build(self) -> None:
-            YOLOv5Service.SingletonBuilder._instance = YOLOv5Service(self)
+            YOLOv5Service.SingletonBuilder.__instance = YOLOv5Service(self)
     
     def __init__(self,builder: SingletonBuilder):
         self._host = builder.get_host()
         self._port = builder.get_port()
-        self._server = self._creat_server()
-        self._impl = None
+        self._server = self.__creat_server()
+        self._detector: YOLOv5Detector = None
 
-    def set_yolov5_impl(self, yolov5_impl:YOLOV5Impl) -> bool:
-        is_ok = True
-        if yolov5_impl._model is None:
-            is_ok = yolov5_impl.load_model()
+    def set_detector(self, detector: YOLOv5Detector) -> bool:
+        is_ok = detector.load_model()
         if is_ok:
-            self._impl = yolov5_impl
+            self._detector = detector
         return is_ok
     
-    def _creat_server(self) -> BaseWSGIServer:
+    def __creat_server(self) -> BaseWSGIServer:
         app = Flask(__name__)
 
         @app.route('/', methods=['GET', 'POST'])
@@ -78,12 +66,12 @@ class YOLOv5Service:
 
                 md5_hash = hashlib.md5()
                 md5_hash.update(url.encode('utf-8'))
-                uid = int(md5_hash.hexdigest(), 16)
+                image_id = int(md5_hash.hexdigest(), 16)
 
-                self._impl.add_img(uid, img)
-                self._impl.detect_by_uid(uid)
+                self._detector.add_image(image_id, img)
+                self._detector.detect_by_image_id(image_id)
 
-                img1 = self._impl.get_imglabeled_by_uid(uid)
+                img1 = self._detector.get_labeled_image_by_image_id(image_id)
                 _, compressed_image = cv2.imencode('.jpg', img1, [cv2.IMWRITE_JPEG_QUALITY, 90])
                 image_bytes = compressed_image.tobytes()
                 response = make_response(image_bytes)

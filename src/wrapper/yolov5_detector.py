@@ -8,21 +8,16 @@ with temporary_change_dir(SUBMODULE_DIR):
     from yolov5.utils.general import non_max_suppression, scale_boxes, check_img_size
     from yolov5.utils.plots import Annotator, colors
     from yolov5.utils.augmentations import letterbox
-from typing import Dict
+from typing import Dict, List, Tuple, Optional
 import queue
 import copy
 import threading
 import traceback
-from src.model_manager.model_manager import ModelManager
+from src.model_manager.model_manager import ModelManager, ModelInfo
 import warnings
 warnings.filterwarnings('always')
 
-# step说明
-# 0 完成检测图片
-# 1 开始检测图片
-# 2 完成添加图片
-# 3 开始添加图片
-# 4 完成添加uid
+# Step 说明
 DETECT_IMAGE_COMPLETE = 0
 DETECT_IMAGE_START = 1
 ADD_IMAGE_COMPLETE = 2
@@ -34,211 +29,194 @@ model_manager = ModelManager()
 @class_temporary_change_dir(SUBMODULE_DIR)
 class YOLOv5Detector:
     class YOLOv5Builder:
-        def __init__(self):
-            self.weight = 'yolov5s.pt'
-            self.device = 'cpu'
-            self.imgsz = [640] * 2
-            self.conf_thres = 0.5
-            self.iou_thres = 0.45
-            self.max_det = 1000
-            self.agnostic_nms = False
-            self.augment = False
-            self.half = False
-            self.dnn = False
+        def __init__(self) -> None:
+            self.weight: str = 'yolov5s.pt'
+            self.device: str = 'cpu'
+            self.imgsz: List[int] = [640, 640]
+            self.conf_thres: float = 0.5
+            self.iou_thres: float = 0.45
+            self.max_det: int = 1000
+            self.half: bool = False
+            self.dnn: bool = False
 
             # 是否将缓存图像，默认不缓存
-            self.save_img_to_cache = False
+            self.save_image_to_cache: bool = False
 
             # 最大缓存100个图像结果
-            self.max_cache = 100
+            self.max_cache: int = 100
 
-            # get_result_by_uid 是否打印结果
-            self.print_result = False
+            # get_result_by_image_id 是否打印结果
+            self.print_result: bool = False
         
-        def build(self):
-            if not torch.cuda.is_available():
-                if self.device != 'cpu':
-                    warnings.warn("cuda is not available", UserWarning)
+        def build(self) -> 'YOLOv5Detector':
+            if not torch.cuda.is_available() and self.device != 'cpu':
+                warnings.warn("CUDA is not available", UserWarning)
                 self.device = 'cpu'
-            # self.device 字符串转torch.device
-            try:
-                self.device = torch.device(self.device)
-            except Exception as e:
-                traceback.print_exc()
-                self.device = torch.device('cpu')
             return YOLOv5Detector(self)
 
-    class ImgInfo:
-        uid = 0
-        img = None
-        img_shape = np.zeros((0, 0, 0))
-        img_processed = None
-        pred = np.zeros((0, 0, 0))
-        is_used = False
-        step = ADD_UID_COMPLETE
-        lock = threading.Lock()
+    class ImageInfo:
+        def __init__(self) -> None:
+            self.image_id: int = 0
+            self.image: Optional[np.ndarray] = None
+            self.image_shape: np.ndarray = np.zeros((0, 0, 0))
+            self.processed_image: Optional[torch.Tensor] = None
+            self.pred: np.ndarray = np.zeros((0, 0, 0))
+            self.is_used: bool = False
+            self.step: int = ADD_UID_COMPLETE
+            self.lock: threading.Lock = threading.Lock()
 
-    def __init__(self, builder:YOLOv5Builder):
-        self._weight = builder.weight
-        self._device = builder.device
-        self._imgsz = builder.imgsz
-        self._conf_thres = builder.conf_thres
-        self._iou_thres = builder.iou_thres
-        self._max_det = builder.max_det
-        self._agnostic_nms = builder.agnostic_nms
-        self._augment = builder.augment
-        self._half = builder.half & (self._device.type != 'cpu')
-        self._dnn = builder.dnn
-        self._max_cache = builder.max_cache
+    def __init__(self, builder: 'YOLOv5Builder') -> None:
+        self.__weight: str = builder.weight
+        self.__device: torch.device = torch.device(builder.device)
+        self.__imagesz: List[int] = builder.imgsz
+        self.__conf_thres: float = builder.conf_thres
+        self.__iou_thres: float = builder.iou_thres
+        self.__max_det: int = builder.max_det
+        self.__half: bool = builder.half
+        self.__dnn: bool = builder.dnn
+        self.__max_cache: int = builder.max_cache
+        self.__print_result: bool = builder.print_result
 
-        # 是否打印
-        self._print_result = builder.print_result
+        self.__model_info: ModelInfo = model_manager.get_model_info(self.__weight, self.__device, self.__dnn, self.__half)
 
-        # 延迟加载
-        self._model_info = model_manager.get_model_info(self._weight, self._device, self._dnn, self._half)
-
-        # 图像、结果缓存
-        self._save_img_to_cache = builder.save_img_to_cache
-        self._img_infos:Dict[int, YOLOv5Detector.ImgInfo] = dict()
-        self._img_uid_fifo:queue.Queue[int] = queue.Queue(maxsize=self._max_cache)
+        self.__save_image_to_cache: bool = builder.save_image_to_cache
+        self.__image_infos: Dict[int, YOLOv5Detector.ImageInfo] = {}
+        self.__image_image_id_fifo: queue.Queue[int] = queue.Queue(maxsize=self.__max_cache)
         
-        # 最新检测完成的uid
-        self.latest_detection_completed_uid = 0
-        # 最新添加图片的uid
-        self.latest_add_uid = 0
+        self.latest_detection_completed_image_id: int = 0
+        self.latest_add_image_id: int = 0
 
     def load_model(self) -> bool:
-        is_load_success = self._model_info.start_using()
+        is_load_success: bool = self.__model_info.start_using()
         if is_load_success:
-            self._imgsz = check_img_size(self._imgsz, s=self._model_info._model.stride)  # check image size
+            self.__imagesz = check_img_size(self.__imagesz, s=self.__model_info.model.stride)  # check image size
         return is_load_success
 
-    def check_uid_exist(self, uid) -> bool:
-        return uid in self._img_infos
-    
-    def get_statue(self, uid) -> int:
-        if not self.check_uid_exist(uid):
-            # warnings.warn("该uid不存在", UserWarning)
-            return -1
-        return self._img_infos[uid].step
+    def check_image_id_exist(self, image_id: int) -> bool:
+        return image_id in self.__image_infos
 
-    def add_uid(self, uid) -> bool:
-        if self.check_uid_exist(uid):
-            warnings.warn("该uid已存在", UserWarning)
+    def get_status(self, image_id: int) -> int:
+        if not self.check_image_id_exist(image_id):
+            warnings.warn("该image id不存在", UserWarning)
+            return -1
+        return self.__image_infos[image_id].step
+
+    def add_image_id(self, image_id: int) -> bool:
+        if self.check_image_id_exist(image_id):
+            warnings.warn("该image id已存在", UserWarning)
             return False
         # 清理溢出
-        if (len(self._img_infos) >= self._max_cache):
-            uid_rm = self._img_uid_fifo.get()
-            if not self._img_infos[uid_rm].is_used:
-                warnings.warn(f'弹出uid={uid_rm}-未被使用', UserWarning)
-            with self._img_infos[uid_rm].lock:
-                self._img_infos.pop(uid_rm)
-        self._img_uid_fifo.put(uid)
-        self._img_infos[uid] = YOLOv5Detector.ImgInfo()
-        self._img_infos[uid].step = ADD_UID_COMPLETE
+        if (len(self.__image_infos) >= self.__max_cache):
+            image_id_rm = self.__image_image_id_fifo.get()
+            if not self.__image_infos[image_id_rm].is_used:
+                warnings.warn(f'弹出image id={image_id_rm}-未被使用', UserWarning)
+            with self.__image_infos[image_id_rm].lock:
+                self.__image_infos.pop(image_id_rm)
+        self.__image_image_id_fifo.put(image_id)
+        self.__image_infos[image_id] = YOLOv5Detector.ImageInfo()
+        self.__image_infos[image_id].step = ADD_UID_COMPLETE
         return True
 
     @torch.no_grad()
-    def detect_by_uid(self, uid) -> bool:
-        if not self.check_uid_exist(uid):
-            warnings.warn("该uid不存在", UserWarning)
+    def detect_by_image_id(self, image_id: int) -> bool:
+        if not self.check_image_id_exist(image_id):
+            warnings.warn("该image id不存在", UserWarning)
             return False
-        if self._img_infos[uid].step != ADD_IMAGE_COMPLETE:
+        if self.__image_infos[image_id].step != ADD_IMAGE_COMPLETE:
             warnings.warn("图片未添加完成", UserWarning)
             return False
-        self._img_infos[uid].step = DETECT_IMAGE_START
-        with self._img_infos[uid].lock:
-            pred = self._model_info._model(self._img_infos[uid].img_processed)[0]
+        self.__image_infos[image_id].step = DETECT_IMAGE_START
+        with self.__image_infos[image_id].lock:
+            pred = self.__model_info.model(self.__image_infos[image_id].processed_image)[0]
         pred = non_max_suppression(prediction=pred,
-                                        conf_thres=self._conf_thres,
-                                        iou_thres=self._iou_thres,
-                                        max_det=self._max_det)[0]
-        with self._img_infos[uid].lock:
+                                        conf_thres=self.__conf_thres,
+                                        iou_thres=self.__iou_thres,
+                                        max_det=self.__max_det)[0]
+        with self.__image_infos[image_id].lock:
             if len(pred):
-                pred[:, :4] = scale_boxes(self._img_infos[uid].img_processed.shape[2:], pred[:, :4], self._img_infos[uid].img_shape).round()
-            self._img_infos[uid].pred = pred
+                pred[:, :4] = scale_boxes(self.__image_infos[image_id].processed_image.shape[2:], pred[:, :4], self.__image_infos[image_id].image_shape).round()
+            self.__image_infos[image_id].pred = pred
         
-        del self._img_infos[uid].img_processed
-        self._img_infos[uid].img_processed = None
-        self.latest_detection_completed_uid = uid
-        self._img_infos[uid].step = DETECT_IMAGE_COMPLETE
+        del self.__image_infos[image_id].processed_image
+        self.__image_infos[image_id].processed_image = None
+        self.latest_detection_completed_image_id = image_id
+        self.__image_infos[image_id].step = DETECT_IMAGE_COMPLETE
 
-    def get_result_by_uid(self, uid):
+    def get_result_by_image_id(self, image_id: int):
         result = []
-        if not self.check_uid_exist(uid):
-            warnings.warn("该uid不存在", UserWarning)
+        if not self.check_image_id_exist(image_id):
+            warnings.warn("该image id不存在", UserWarning)
             return None
-        if self._img_infos[uid].step != DETECT_IMAGE_COMPLETE:
+        if self.__image_infos[image_id].step != DETECT_IMAGE_COMPLETE:
             warnings.warn("图片未添加完成", UserWarning)
             return False
-        with self._img_infos[uid].lock:
-            self._img_infos[uid].is_used = True
-            if len(self._img_infos[uid].pred):
-                for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
+        with self.__image_infos[image_id].lock:
+            self.__image_infos[image_id].is_used = True
+            if len(self.__image_infos[image_id].pred):
+                for *xyxy, conf, cls in reversed(self.__image_infos[image_id].pred):
                     c = int(cls)  # integer class
-                    label = f'{self._model_info._model.names[c]}'
-                    imgRows, imgCols, _ = self._img_infos[uid].img_shape
+                    # label = f'{self.__model_info.model.names[c]}'
+                    h, w, _ = self.__image_infos[image_id].image_shape
                     result.append([
-                        xyxy[0].item() / imgCols,
-                        xyxy[1].item() / imgRows,
-                        xyxy[2].item() / imgCols,
-                        xyxy[3].item() / imgRows,
+                        xyxy[0].item() / w,
+                        xyxy[1].item() / h,
+                        xyxy[2].item() / w,
+                        xyxy[3].item() / h,
                         c,
                         float(conf.cpu().numpy())
                     ])
-                    if self._print_result is True:
+                    if self.__print_result:
                         print('YoloImgInterface', result[-1])
         return result
 
-    def get_imglabeled_by_uid(self, uid):
-        if not self._save_img_to_cache:
-            warnings.warn("save_img_to_cache is False", UserWarning)
-            return cv2.Mat()
+    def get_labeled_image_by_image_id(self, image_id: int):
+        if not self.__save_image_to_cache:
+            warnings.warn("save_image_to_cache is False", UserWarning)
+            return np.ndarray()
 
-        with self._img_infos[uid].lock:
-            annotator = Annotator(self._img_infos[uid].img, line_width=3, example=str(self._model_info._model.names))
-        self._img_infos[uid].is_used = True
-        if len(self._img_infos[uid].pred):
-            for *xyxy, conf, cls in reversed(self._img_infos[uid].pred):
+        with self.__image_infos[image_id].lock:
+            annotator = Annotator(self.__image_infos[image_id].image, line_width=3, example=str(self.__model_info.model.names))
+        self.__image_infos[image_id].is_used = True
+        if len(self.__image_infos[image_id].pred):
+            for *xyxy, conf, cls in reversed(self.__image_infos[image_id].pred):
                 c = int(cls)  # integer class
-                annotator.box_label(xyxy, f'{self._model_info._model.names[c]} {conf:.2f}', color=colors(c, True))
-        img = annotator.result()
-        return img
+                annotator.box_label(xyxy, f'{self.__model_info.model.names[c]} {conf:.2f}', color=colors(c, True))
+        image = annotator.result()
+        return image
 
-    def add_img(self, uid, img) -> bool:
-        if not self.check_uid_exist(uid):
-            self.add_uid(uid)
-        elif self._img_infos[uid].step != ADD_UID_COMPLETE:
-            print(self._img_infos[uid].step)
+    def add_image(self, image_id: int, image: np.ndarray) -> bool:
+        if not self.check_image_id_exist(image_id):
+            self.add_image_id(image_id)
+        elif self.__image_infos[image_id].step != ADD_UID_COMPLETE:
+            print(self.__image_infos[image_id].step)
             warnings.warn("重复添加", UserWarning)
             return False
-        self._img_infos[uid].step = ADD_IMAGE_START
-        self._img_infos[uid].img_shape = img.shape
-        if self._save_img_to_cache:
-            self._img_infos[uid].img = copy.deepcopy(img)
+        self.__image_infos[image_id].step = ADD_IMAGE_START
+        self.__image_infos[image_id].image_shape = image.shape
+        if self.__save_image_to_cache:
+            self.__image_infos[image_id].image = copy.deepcopy(image)
         # 处理图片
-        img = letterbox(img, self._imgsz, stride=self._model_info._model.stride)[0]
-        img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-        img = np.ascontiguousarray(img)
-        img = torch.from_numpy(img).to(self._device)
-        img = img.half() if self._half else img.float()  # uint8 to fp16/32
-        img /= 255.0  # 0 - 255 to 0.0 - 1.0
-        if len(img.shape) == 3:
-            img = img[None]  # expand for batch dim
-        self._img_infos[uid].img_processed = img
-        self.latest_add_uid = uid
-        self._img_infos[uid].step = ADD_IMAGE_COMPLETE
+        image = letterbox(image, self.__imagesz, stride=self.__model_info.model.stride)[0]
+        image = image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        image = np.ascontiguousarray(image)
+        image = torch.from_numpy(image).to(self.__device)
+        image = image.half() if self.__half else image.float()  # uint8 to fp16/32
+        image /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if len(image.shape) == 3:
+            image = image[None]  # expand for batch dim
+        self.__image_infos[image_id].processed_image = image
+        self.latest_add_image_id = image_id
+        self.__image_infos[image_id].step = ADD_IMAGE_COMPLETE
         return True
 
     def get_letterbox_size(self, width: int, height: int):
         # letterbox改写，只获取图像尺寸，没有图像处理
         shape = (height, width)
-        new_shape = self._imgsz
-        color = (114, 114, 114)
+        new_shape = self.__imagesz
         auto = True
         scaleFill = False
         scaleup = True
-        stride = self._model_info._model.stride
+        stride = self.__model_info.model.stride
         
         if isinstance(new_shape, int):
             new_shape = (new_shape, new_shape)
@@ -257,7 +235,6 @@ class YOLOv5Detector:
         elif scaleFill:  # stretch
             dw, dh = 0.0, 0.0
             new_unpad = (new_shape[1], new_shape[0])
-            ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
 
         dw /= 2  # divide padding into 2 sides
         dh /= 2
