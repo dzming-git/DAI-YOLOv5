@@ -31,7 +31,7 @@ class YOLOv5Detector:
     class YOLOv5Builder:
         def __init__(self) -> None:
             self.weight: str = 'yolov5s.pt'
-            self.device: str = 'cpu'
+            self.device_str: str = 'cpu'
             self.imgsz: List[int] = [640, 640]
             self.conf_thres: float = 0.5
             self.iou_thres: float = 0.45
@@ -49,9 +49,9 @@ class YOLOv5Detector:
             self.print_result: bool = False
         
         def build(self) -> 'YOLOv5Detector':
-            if not torch.cuda.is_available() and self.device != 'cpu':
+            if not torch.cuda.is_available() and self.device_str != 'cpu':
                 warnings.warn("CUDA is not available", UserWarning)
-                self.device = 'cpu'
+                self.device_str = 'cpu'
             return YOLOv5Detector(self)
 
     class ImageInfo:
@@ -67,7 +67,7 @@ class YOLOv5Detector:
 
     def __init__(self, builder: 'YOLOv5Builder') -> None:
         self.__weight: str = builder.weight
-        self.__device: torch.device = torch.device(builder.device)
+        self.__device: torch.device = torch.device(builder.device_str)
         self.__imagesz: List[int] = builder.imgsz
         self.__conf_thres: float = builder.conf_thres
         self.__iou_thres: float = builder.iou_thres
