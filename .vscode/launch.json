@@ -18,16 +18,24 @@
             "justMyCode": true
         },
         {
+            "name": "http_test",
+            "type": "debugpy",
+            "python": "/bin/python3",
+            "request": "launch",
+            "module": "tests.http_test.app",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "test",
             "type": "debugpy",
             "python": "/bin/python3",
             "request": "launch",
-            "program": "test.py",
+            "module": "tests.test",
             "console": "integratedTerminal",
             "env": {
                 "DISPLAY": "192.168.1.185:0.0"
             },
-            "preLaunchTask": "proto generate",
             "justMyCode": true
         }
     ]

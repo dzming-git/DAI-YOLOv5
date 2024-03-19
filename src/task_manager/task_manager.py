@@ -52,7 +52,7 @@ class TaskInfo:
             self.image_harmony_client.connect_image_loader(self.loader_args_hash)
             yolov5_builder = YOLOv5Detector.YOLOv5Builder()
             yolov5_builder.weight = self.weight
-            yolov5_builder.device = self.device
+            yolov5_builder.device_str = self.device
             self.detector = yolov5_builder.build()
             assert self.detector.load_model(), 'load model failed'
             self.stop_event.clear()  # 确保开始时事件是清除状态

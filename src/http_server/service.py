@@ -17,28 +17,17 @@ class YOLOv5Service:
             return YOLOv5Service.SingletonBuilder.__instance
         
         def __init__(self):
-            self.__host = "127.0.0.1"
-            self.__port = "5000"
-                
-        def set_host(self, host:str) -> None:
-            self.__host = host
-        
-        def get_host(self) ->str:
-            return self.__host
-
-        def set_port(self, port:str) -> None:
-            self.__port = port
-        
-        def get_port(self) -> str:
-            return self.__port
+            self.host: str = "127.0.0.1"
+            self.port: str = "5000"
+            self.template_folder: str = 'templates'
         
         def build(self) -> None:
             YOLOv5Service.SingletonBuilder.__instance = YOLOv5Service(self)
     
     def __init__(self,builder: SingletonBuilder):
-        self._host = builder.get_host()
-        self._port = builder.get_port()
-        self._server = self.__creat_server()
+        self.__host = builder.host
+        self.__port = builder.port
+        self.__server = self.__creat_server(template_folder=builder.template_folder)
         self._detector: YOLOv5Detector = None
 
     def set_detector(self, detector: YOLOv5Detector) -> bool:
@@ -47,8 +36,9 @@ class YOLOv5Service:
             self._detector = detector
         return is_ok
     
-    def __creat_server(self) -> BaseWSGIServer:
-        app = Flask(__name__)
+    def __creat_server(self, template_folder: str) -> BaseWSGIServer:
+        app = Flask(__name__,
+                    template_folder=template_folder)
 
         @app.route('/', methods=['GET', 'POST'])
         def index():
@@ -79,8 +69,8 @@ class YOLOv5Service:
                 return response
             return render_template('index.html')
 
-        server = make_server(host=self._host, port=int(self._port), app=app, threaded=True)
+        server = make_server(host=self.__host, port=int(self.__port), app=app, threaded=True)
         return server
     
     def start_server(self):
-        self._server.serve_forever()
+        self.__server.serve_forever()
