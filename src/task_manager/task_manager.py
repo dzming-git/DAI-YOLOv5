@@ -22,7 +22,7 @@ class TaskInfo:
         self.track_thread = None  # 用于跟踪线程的引用
     
     def set_pre_service(self, pre_service_name: str, pre_service_ip: str, pre_service_port: str, args: Dict[str, str] = {}):
-        if 'image harmony' == pre_service_name:
+        if 'image harmony gRPC' == pre_service_name:
             self.image_harmony_address = [pre_service_ip, pre_service_port]
             self.image_harmony_client = ImageHarmonyClient(pre_service_ip, pre_service_port)
             assert 'LoaderArgsHash' in args, 'arg: [LoaderArgsHash] not set'

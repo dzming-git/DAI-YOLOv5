@@ -2,7 +2,7 @@ import traceback
 from generated.protos.service_coordinator import service_coordinator_pb2, service_coordinator_pb2_grpc
 from src.task_manager.task_manager import TaskManager, TaskInfo
 
-VALID_PRE_SERVICE = ['image harmony']
+VALID_PRE_SERVICE = ['image harmony gRPC']
 
 class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer):
     def informPreviousServiceInfo(self, request, context):
