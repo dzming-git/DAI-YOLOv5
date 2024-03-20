@@ -10,41 +10,40 @@ class ImageHarmonyClient:
         options = [('grpc.max_receive_message_length', 1024 * 1024 * 1024)]
         self.conn = grpc.insecure_channel(f'{ip}:{port}', options=options)
         self.client = image_harmony_pb2_grpc.CommunicateStub(channel=self.conn)
-        self.connect_id: int = 0
+        self.connection_id: int = 0
     
     def connect_image_loader(self, loader_args_hash: int):
-        request = image_harmony_pb2.RegisterImageTransServiceRequest()
+        request = image_harmony_pb2.ConnectImageLoaderRequest()
         request.loaderArgsHash = loader_args_hash
-        request.isUnique = False
-        response = self.client.registerImageTransService(request)
-        self.connect_id = response.connectId
+        response = self.client.connectImageLoader(request)
+        self.connection_id = response.connectionId
         print(f'{response.response.code}: {response.response.message}')
 
     def disconnect_image_loader(self):
-        if 0 != self.connect_id:
-            request = image_harmony_pb2.UnregisterImageTransServiceRequest()
-            request.connectId = self.connect_id
-            response = self.client.unregisterImageTransService(request)
+        if 0 != self.connection_id:
+            request = image_harmony_pb2.DisconnectImageLoaderRequest()
+            request.connectionId = self.connection_id
+            response = self.client.disconnectImageLoader(request)
             print(f'{response.response.code}: {response.response.message}')
     
     def set_connect_id(self, connect_id: int):
-        self.connect_id = connect_id
+        self.connection_id = connect_id
     
     def set_args(self, image_type: str, args: Dict[str, str]):
-        register_image_harmony_service_request = image_harmony_pb2.RegisterImageTransServiceRequest()
+        register_image_harmony_service_request = image_harmony_pb2.ConnectImageLoaderRequest()
         register_image_harmony_service_request.imageType = image_type
         for key, value in args.items():
             arg = register_image_harmony_service_request.args.add()
             arg.key = key
             arg.value = value
-        register_image_harmony_service_response = self.client.registerImageTransService(register_image_harmony_service_request)
-        self.connect_id = register_image_harmony_service_response.connectId
+        register_image_harmony_service_response = self.client.registerImageLoader(register_image_harmony_service_request)
+        self.connection_id = register_image_harmony_service_response.connectionId
         response = register_image_harmony_service_response.response
         print(f'{response.code}: {response.message}')
     
     def get_image_by_image_id(self, image_id: int, width: int, height: int) -> Tuple[int, np.ndarray]:
         get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
-        get_image_by_image_id_request.connectId = self.connect_id
+        get_image_by_image_id_request.connectionId = self.connection_id
         get_image_by_image_id_request.imageRequest.imageId = image_id
         # TODO: 这些参数暂时固定
         get_image_by_image_id_request.imageRequest.format = '.jpg'
@@ -64,7 +63,7 @@ class ImageHarmonyClient:
     
     def get_image_size_by_image_id(self, image_id: int) -> Tuple[int, int]:
         get_image_by_image_id_request = image_harmony_pb2.GetImageByImageIdRequest()
-        get_image_by_image_id_request.connectId = self.connect_id
+        get_image_by_image_id_request.connectionId = self.connection_id
         get_image_by_image_id_request.imageRequest.imageId = image_id
         get_image_by_image_id_request.imageRequest.noImageBuffer = True
         get_image_by_image_id_response = self.client.getImageByImageId(get_image_by_image_id_request)
@@ -79,7 +78,7 @@ class ImageHarmonyClient:
 
     def get_latest_image(self, width: int, height: int) -> Tuple[int, np.ndarray]:
         get_next_image_by_image_id_request = image_harmony_pb2.GetNextImageByImageIdRequest()
-        get_next_image_by_image_id_request.connectId = self.connect_id
+        get_next_image_by_image_id_request.connectionId = self.connection_id
         get_next_image_by_image_id_request.imageRequest.imageId = 0
         # TODO: 这些参数暂时固定
         get_next_image_by_image_id_request.imageRequest.format = '.jpg'
