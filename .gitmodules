@@ -13,3 +13,6 @@
 [submodule "src/utils"]
 	path = src/utils
 	url = https://github.com/dzming-git/DAI-utils-python.git
+[submodule "src/grpc/clients"]
+	path = src/grpc/clients
+	url = https://github.com/dzming-git/DAI-grpc-clients-python.git
