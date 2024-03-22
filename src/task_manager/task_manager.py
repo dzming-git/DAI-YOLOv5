@@ -15,7 +15,7 @@ class TaskInfo:
         
         self.loader_args_hash: int = 0  # image harmony中加载器的hash值
         self.weight: str = ''
-        self.device: str = ''
+        self.device_str: str = ''
         self.image_id_queue: queue.Queue[int] = queue.Queue()
         self.detector: YOLOv5Detector = None
         self.stop_event = threading.Event()
@@ -25,33 +25,35 @@ class TaskInfo:
         if 'image harmony gRPC' == pre_service_name:
             self.image_harmony_address = [pre_service_ip, pre_service_port]
             self.image_harmony_client = ImageHarmonyClient(pre_service_ip, pre_service_port)
-            assert 'LoaderArgsHash' in args, 'arg: [LoaderArgsHash] not set'
+            if 'LoaderArgsHash' not in args:
+                raise ValueError('Argument "LoaderArgsHash" is required but not set.')
             self.loader_args_hash = int(args['LoaderArgsHash'])
     
     def set_cur_service(self, args: Dict[str, str]):
         # TODO 未来添加dnn half等
         if 'Device' in args:
-            self.device = args['Device']
+            self.device_str = args['Device']
         if 'Weight' in args:
             self.weight = args['Weight']
     
-    def check(self) -> Tuple[bool, str]:
-        try:
-            assert self.image_harmony_address, 'Error: image_harmony_address not set.'
-            assert self.image_harmony_client,  'Error: image_harmony_client not set.'
-            assert self.loader_args_hash,      'Error: loader_args_hash not set.'
-            assert self.weight,                'Error: weight not set.'
-            assert self.device,                'Error: device not set.'
-        except Exception as e:
-            error_info = traceback.format_exc()
-            return False, error_info
-        return True, 'OK'
-    
+    def check(self) -> None:
+        if not self.image_harmony_address:
+            raise ValueError('Error: image_harmony_address not set.')
+        if not self.image_harmony_client:
+            raise ValueError('Error: image_harmony_client not set.')
+        if not self.loader_args_hash:
+            raise ValueError('Error: loader_args_hash not set.')
+        if not self.weight:
+            raise ValueError('Error: weight not set.')
+        if not self.device_str:
+            raise ValueError('Error: device not set.')
+
     def start(self):
+        self.check()
         self.image_harmony_client.connect_image_loader(self.loader_args_hash)
         yolov5_builder = YOLOv5Detector.YOLOv5Builder()
         yolov5_builder.weight = self.weight
-        yolov5_builder.device_str = self.device
+        yolov5_builder.device_str = self.device_str
         self.detector = yolov5_builder.build()
         self.detector.load_model()
         self.stop_event.clear()  # 确保开始时事件是清除状态
