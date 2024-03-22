@@ -86,11 +86,9 @@ class YOLOv5Detector:
         self.latest_detection_completed_image_id: int = 0
         self.latest_add_image_id: int = 0
 
-    def load_model(self) -> bool:
-        is_load_success: bool = self.__model_info.start_using()
-        if is_load_success:
-            self.__imagesz = check_img_size(self.__imagesz, s=self.__model_info.model.stride)  # check image size
-        return is_load_success
+    def load_model(self) -> None:
+        self.__model_info.start_using()
+        self.__imagesz = check_img_size(self.__imagesz, s=self.__model_info.model.stride)  # check image size
 
     def check_image_id_exist(self, image_id: int) -> bool:
         return image_id in self.__image_infos

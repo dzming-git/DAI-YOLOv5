@@ -48,21 +48,16 @@ class TaskInfo:
         return True, 'OK'
     
     def start(self):
-        try:
-            self.image_harmony_client.connect_image_loader(self.loader_args_hash)
-            yolov5_builder = YOLOv5Detector.YOLOv5Builder()
-            yolov5_builder.weight = self.weight
-            yolov5_builder.device_str = self.device
-            self.detector = yolov5_builder.build()
-            assert self.detector.load_model(), 'load model failed'
-            self.stop_event.clear()  # 确保开始时事件是清除状态
-            self.track_thread = threading.Thread(target=self.detect_by_image_id)
-            self.track_thread.start()
-        except Exception as e:
-            error_info = traceback.format_exc()
-            print(error_info)
-            return False, error_info
-        return True, 'OK'
+        self.image_harmony_client.connect_image_loader(self.loader_args_hash)
+        yolov5_builder = YOLOv5Detector.YOLOv5Builder()
+        yolov5_builder.weight = self.weight
+        yolov5_builder.device_str = self.device
+        self.detector = yolov5_builder.build()
+        self.detector.load_model()
+        self.stop_event.clear()  # 确保开始时事件是清除状态
+        self.track_thread = threading.Thread(target=self.detect_by_image_id)
+        self.track_thread.start()
+
     # def progress(self):
     #     # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
     #     # 延迟最低的方案，申请最新的图片，持续检测，根据图片ID查询结果

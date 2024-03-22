@@ -1,4 +1,3 @@
-import traceback
 from generated.protos.service_coordinator import service_coordinator_pb2, service_coordinator_pb2_grpc
 from src.task_manager.task_manager import TaskManager, TaskInfo
 
@@ -9,6 +8,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         print(request)
         response_code = 200
         response_message = ''
+        response = service_coordinator_pb2.InformPreviousServiceInfoResponse()
         
         try:
             task_manager = TaskManager()
@@ -29,9 +29,9 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
 
         except Exception as e:
             response_code = 400
-            response_message += traceback.format_exc()
+            response_message = e
+            return response
 
-        response = service_coordinator_pb2.InformPreviousServiceInfoResponse()
         response.response.code = response_code
         response.response.message = response_message
         return response
@@ -53,7 +53,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
             task_manager.tasks[task_id].set_cur_service(args)
         except Exception as e:
             response.response.code = 400
-            response.response.message = traceback.format_exc()
+            response.response.message = e
             return response
 
         response.response.code = response_code
@@ -67,12 +67,12 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
         try:
             task_manager = TaskManager()
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
-            task_start_ok, msg = task_manager.tasks[task_id].start()
-            assert task_start_ok, msg
+            if task_id not in task_manager.tasks:
+                raise Exception('ERROR: The task ID does not exist.')
+            task_manager.tasks[task_id].start()
         except Exception as e:
             response.response.code = 400
-            response.response.message = traceback.format_exc()
+            response.response.message = e
             return response
         response.response.code = response_code
         response.response.message = response_message
@@ -88,7 +88,7 @@ class ServiceCoordinatorServer(service_coordinator_pb2_grpc.CommunicateServicer)
             task_manager.stop_task(task_id)
         except Exception as e:
             response.response.code = 400
-            response.response.message = traceback.format_exc()
+            response.response.message = e
             return response
         response.response.code = response_code
         response.response.message = response_message
