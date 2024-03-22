@@ -61,30 +61,8 @@ class TaskInfo:
         self.__stop_event.clear()  # 确保开始时事件是清除状态
         self.__track_thread = threading.Thread(target=self.detect_by_image_id)
         self.__track_thread.start()
-
-    # def progress(self):
-    #     # TODO 两种方案，延迟？性能？目前采用的是延迟最低的方案
-    #     # 延迟最低的方案，申请最新的图片，持续检测，根据图片ID查询结果
-    #     # 另一种方案不浪费性能，接收图片ID，根据图片ID去申请图片检测
-    #     detector_manager = DetectorManager()
-    #     assert self.weight in detector_manager.detector_info_map and detector_manager.detector_info_map[self.weight] is not None, 'yolov5 detector is not set\n'
-    #     assert self.image_harmony_client is not None, 'image harmony client is not set\n'
-    #     detector_info = detector_manager.detector_info_map[self.weight]
-    #     while not self.stop:
-    #         # TODO 优化：先获取图像id，判断是否重复，不重复再用id获取图像
-    #         image_id, img = self.image_harmony_client.get_latest_image()
-    #         if 0 == image_id:
-    #             continue
-    #         if not detector_info.detector.add_img(image_id, img):
-    #             continue
-    #         detector_info.detector.detect_by_image_id(image_id)
-    #         result = detector_info.detector.get_result_by_image_id(image_id)
-    #         if (result):
-    #             print(result)
     
     def detect_by_image_id(self):
-        assert self.detector, 'yolov5 detector is not set\n'
-        assert self.__image_harmony_client, 'image harmony client is not set\n'
         while not self.__stop_event.is_set():  # 使用事件来检查停止条件
             # image_id_in_queue = self.image_id_queue.get()
             try:
