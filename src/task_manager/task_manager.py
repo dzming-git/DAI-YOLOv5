@@ -4,6 +4,9 @@ import queue
 from src.grpc.clients.image_harmony.image_harmony_client import ImageHarmonyClient
 from src.wrapper.yolov5_detector import YOLOv5Detector
 import threading
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class TaskInfo:
     def __init__(self, task_id: int):
@@ -90,16 +93,17 @@ class TaskInfo:
             except queue.Empty:
                 # 如果在超时时间内没有获取到新的image_id，则继续循环，此时可以检查停止事件
                 continue
-            width, height = self.__image_harmony_client.get_image_size_by_image_id(image_id_in_queue)
-            if 0 == width or 0 == height:
-                continue
-            new_unpad_width, new_unpad_height, top, bottom, left, right = self.detector.get_letterbox_size(width, height)
-            image_id, image = self.__image_harmony_client.get_image_by_image_id(image_id_in_queue, new_unpad_width, new_unpad_height)
-            if 0 == image_id:
-                continue
-            if not self.detector.add_image(image_id, image):
-                continue
-            self.detector.detect_by_image_id(image_id)
+            try:
+                width, height = self.__image_harmony_client.get_image_size_by_image_id(image_id_in_queue)
+                new_unpad_width, new_unpad_height, top, bottom, left, right = self.detector.get_letterbox_size(width, height)
+                image_id, image = self.__image_harmony_client.get_image_by_image_id(image_id_in_queue, new_unpad_width, new_unpad_height)
+                if 0 == image_id:
+                    continue
+                self.detector.add_image(image_id, image)
+                self.detector.detect_by_image_id(image_id)
+            except Exception as e:
+                logging.error(e)
+                
     
     def stop(self):
         self.__stop_event.set()  # 设置事件，通知线程停止

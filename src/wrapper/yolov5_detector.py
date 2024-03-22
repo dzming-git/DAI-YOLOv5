@@ -95,14 +95,12 @@ class YOLOv5Detector:
 
     def get_status(self, image_id: int) -> int:
         if not self.check_image_id_exist(image_id):
-            warnings.warn("该image id不存在", UserWarning)
-            return -1
+            raise ValueError('ERROR: The image ID does not exist.')
         return self.__image_infos[image_id].step
 
-    def add_image_id(self, image_id: int) -> bool:
+    def add_image_id(self, image_id: int):
         if self.check_image_id_exist(image_id):
-            warnings.warn("该image id已存在", UserWarning)
-            return False
+            raise ValueError('ERROR: The image ID already exists')
         # 清理溢出
         if (len(self.__image_infos) >= self.__max_cache):
             image_id_rm = self.__image_image_id_fifo.get()
@@ -113,16 +111,15 @@ class YOLOv5Detector:
         self.__image_image_id_fifo.put(image_id)
         self.__image_infos[image_id] = YOLOv5Detector.ImageInfo()
         self.__image_infos[image_id].step = ADD_UID_COMPLETE
-        return True
 
     @torch.no_grad()
-    def detect_by_image_id(self, image_id: int) -> bool:
+    def detect_by_image_id(self, image_id: int) -> None:
         if not self.check_image_id_exist(image_id):
-            warnings.warn("该image id不存在", UserWarning)
-            return False
+            raise ValueError('ERROR: The image ID does not exist.')
+
         if self.__image_infos[image_id].step != ADD_IMAGE_COMPLETE:
-            warnings.warn("图片未添加完成", UserWarning)
-            return False
+            raise RuntimeError(f'ERROR: Image addition incomplete for image ID {image_id}.')
+        
         self.__image_infos[image_id].step = DETECT_IMAGE_START
         with self.__image_infos[image_id].lock:
             pred = self.__model_info.model(self.__image_infos[image_id].processed_image)[0]
@@ -140,14 +137,14 @@ class YOLOv5Detector:
         self.latest_detection_completed_image_id = image_id
         self.__image_infos[image_id].step = DETECT_IMAGE_COMPLETE
 
-    def get_result_by_image_id(self, image_id: int):
-        result = []
+    def get_result_by_image_id(self, image_id: int) -> List[np.ndarray]:
+        result: List[np.ndarray] = []
         if not self.check_image_id_exist(image_id):
-            warnings.warn("该image id不存在", UserWarning)
-            return None
+            raise ValueError('ERROR: The image ID does not exist.')
+
         if self.__image_infos[image_id].step != DETECT_IMAGE_COMPLETE:
-            warnings.warn("图片未添加完成", UserWarning)
-            return False
+            raise RuntimeError(f'ERROR: Detection not complete for image ID {image_id}.')
+
         with self.__image_infos[image_id].lock:
             self.__image_infos[image_id].is_used = True
             if len(self.__image_infos[image_id].pred):
@@ -167,10 +164,9 @@ class YOLOv5Detector:
                         print('YoloImgInterface', result[-1])
         return result
 
-    def get_labeled_image_by_image_id(self, image_id: int):
-        if not self.__save_image_to_cache:
-            warnings.warn("save_image_to_cache is False", UserWarning)
-            return np.ndarray()
+    def get_labeled_image_by_image_id(self, image_id: int) -> np.ndarray:
+        if self.__image_infos[image_id].step != DETECT_IMAGE_COMPLETE:
+            raise RuntimeError('Error: save_image_to_cache is False')
 
         with self.__image_infos[image_id].lock:
             annotator = Annotator(self.__image_infos[image_id].image, line_width=3, example=str(self.__model_info.model.names))
@@ -182,13 +178,11 @@ class YOLOv5Detector:
         image = annotator.result()
         return image
 
-    def add_image(self, image_id: int, image: np.ndarray) -> bool:
+    def add_image(self, image_id: int, image: np.ndarray) -> None:
         if not self.check_image_id_exist(image_id):
             self.add_image_id(image_id)
         elif self.__image_infos[image_id].step != ADD_UID_COMPLETE:
-            print(self.__image_infos[image_id].step)
-            warnings.warn("重复添加", UserWarning)
-            return False
+            raise RuntimeError('Error: Repeatedly adding images')
         self.__image_infos[image_id].step = ADD_IMAGE_START
         self.__image_infos[image_id].image_shape = image.shape
         if self.__save_image_to_cache:
@@ -205,9 +199,8 @@ class YOLOv5Detector:
         self.__image_infos[image_id].processed_image = image
         self.latest_add_image_id = image_id
         self.__image_infos[image_id].step = ADD_IMAGE_COMPLETE
-        return True
 
-    def get_letterbox_size(self, width: int, height: int):
+    def get_letterbox_size(self, width: int, height: int) -> Tuple[int, int, int, int, int, int]:
         # letterbox改写，只获取图像尺寸，没有图像处理
         shape = (height, width)
         new_shape = self.__imagesz

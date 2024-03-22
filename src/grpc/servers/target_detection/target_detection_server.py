@@ -14,19 +14,22 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def getResultMappingTable(self, request, context):
         response_code = 200
         response_message = ''
+        response = target_detection_pb2.GetResultMappingTableResponse()
         labels = []
         try:
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            if task_id not in task_manager.tasks:
+                raise ValueError('ERROR: The task ID does not exist.')
             weight = task_manager.tasks[task_id].weight
-            assert weight in config.weights_map, f'ERROR: The configuration file does not contain the weight: {weight}.\n'
+            if weight not in config.weights_map:
+                raise ValueError(f'ERROR: The configuration file does not contain the weight: {weight}.')
             weight_info = config.weights_map[weight]
             labels = weight_info.labels
         except Exception as e:
-            response_code = 400
-            response_message += traceback.format_exc()
+            response.response.code = 400
+            response.response.message = str(e)
+            return response
 
-        response = target_detection_pb2.GetResultMappingTableResponse()
         response.response.code = response_code
         response.response.message = response_message
         for label in labels:
@@ -36,9 +39,11 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def loadModel(self, request, context):
         response_code = 200
         response_message = ''
+        response = target_detection_pb2.LoadModelResponse()
         try:
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            if task_id not in task_manager.tasks:
+                raise ValueError('ERROR: The task ID does not exist.')
             detector = task_manager.tasks[task_id].detector
             weight = detector._weight
             device = detector._device
@@ -53,9 +58,9 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             elif model_state == mm.LOADING_COMPLETED:
                 response_message += 'Model loading completed.\n'
         except Exception as e:
-            response_code = 400
-            response_message += traceback.format_exc()
-        response = target_detection_pb2.LoadModelResponse()
+            response.response.code = 400
+            response.response.message = str(e)
+            return response
         response.response.code = response_code
         response.response.message = response_message
         return response
@@ -63,10 +68,12 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def checkModelState(self, request, context):
         response_code = 200
         response_message = ''
+        response = target_detection_pb2.CheckModelStateResponse()
         modelState = target_detection_pb2.ModelState.NotSet
         try:
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            if task_id not in task_manager.tasks:
+                raise ValueError('ERROR: The task ID does not exist.')
             detector = task_manager.tasks[task_id].detector
             weight = detector._weight
             device = detector._device
@@ -81,10 +88,10 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             elif model_state == mm.LOADING_COMPLETED:
                 modelState = target_detection_pb2.ModelState.LoadingCompleted
         except Exception as e:
-            response_code = 400
-            response_message += traceback.format_exc()
+            response.response.code = 400
+            response.response.message = str(e)
+            return response
 
-        response = target_detection_pb2.CheckModelStateResponse()
         response.response.code = response_code
         response.response.message = response_message
         response.modelState = modelState
@@ -93,12 +100,14 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def getResultIndexByImageId(self, request, context):
         response_code = 200
         response_message = ''
+        response = target_detection_pb2.GetResultIndexByImageIdResponse()
         results = []
         try:
             task_id = request.taskId
             image_id = request.imageId
             wait = request.wait
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            if task_id not in task_manager.tasks:
+                raise ValueError('ERROR: The task ID does not exist.')
             detector = task_manager.tasks[task_id].detector
             image_id_exist = detector.check_image_id_exist(image_id)
             if not image_id_exist and wait:
@@ -123,10 +132,10 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
             
             results = detector.get_result_by_image_id(image_id)
         except Exception as e:
-            response_code = 400
-            response_message += traceback.format_exc()
+            response.response.code = 400
+            response.response.message = str(e)
+            return response
 
-        response = target_detection_pb2.GetResultIndexByImageIdResponse()
         response.response.code = response_code
         response.response.message = response_message
         for result in results:
@@ -144,20 +153,22 @@ class TargetDetectionServer(target_detection_pb2_grpc.CommunicateServicer):
     def getLatestResultIndex(self, request, context):
         response_code = 200
         response_message = ''
+        response = target_detection_pb2.GetLatestResultIndexResponse()
         results = []
         image_id = 0
         try:
             task_id = request.taskId
-            assert task_id in task_manager.tasks, 'ERROR: The task ID does not exist.\n'
+            if task_id not in task_manager.tasks:
+                raise ValueError('ERROR: The task ID does not exist.')
             detector = task_manager.tasks[task_id].detector
             image_id = detector.latest_detection_completed_image_id
             results = detector.get_result_by_image_id(image_id)
             # TODO results为None时会出bug
         except Exception as e:
-            response_code = 400
-            response_message += traceback.format_exc()
+            response.response.code = 400
+            response.response.message = str(e)
+            return response
 
-        response = target_detection_pb2.GetLatestResultIndexResponse()
         response.response.code = response_code
         response.response.message = response_message
         response.imageId = image_id
